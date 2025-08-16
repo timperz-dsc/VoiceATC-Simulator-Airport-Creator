@@ -20,6 +20,8 @@ function App() {
   const [showAirportsDropdown, setShowAirportsDropdown] = useState(false);
   const [settingsPage, setSettingsPage] = useState('airports');
   const [previousView, setPreviousView] = useState('welcome');
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateAirportName, setDuplicateAirportName] = useState('');
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -258,9 +260,18 @@ function App() {
 
   const handleNameSubmit = () => {
     if (nameInputValue.trim()) {
+      const airportName = nameInputValue.trim().toUpperCase();
+      
+      // Check if airport with this ICAO already exists
+      const existingAirport = airports.find(airport => airport.name === airportName);
+      if (existingAirport) {
+        handleDuplicateWarning(airportName);
+        return;
+      }
+      
       const newAirport = {
         id: Date.now().toString(),
-        name: nameInputValue.trim().toUpperCase(),
+        name: airportName,
         createdAt: new Date().toISOString()
       };
       
@@ -272,12 +283,17 @@ function App() {
       setNameInputValue('');
       setSelectedAirport(newAirport.id);
       
-      // Return to the previous view instead of your-airports
-      setIsTransitioning(true);
-      setTimeout(() => {
+      // Only show animation if going to a different view
+      if (currentView !== previousView) {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setCurrentView(previousView);
+          setIsTransitioning(false);
+        }, 150);
+      } else {
+        // If staying on the same page, just update the view without animation
         setCurrentView(previousView);
-        setIsTransitioning(false);
-      }, 150);
+      }
     }
   };
 
@@ -306,6 +322,16 @@ function App() {
   const cancelDeleteAirport = () => {
     setShowConfirmDelete(false);
     setAirportToDelete(null);
+  };
+
+  const handleDuplicateWarning = (airportName) => {
+    setShowDuplicateWarning(true);
+    setDuplicateAirportName(airportName);
+  };
+
+  const cancelDuplicateWarning = () => {
+    setShowDuplicateWarning(false);
+    setDuplicateAirportName('');
   };
 
   const handleSort = (field) => {
@@ -1125,34 +1151,48 @@ function App() {
 
       {/* Confirm Delete Modal */}
       {showConfirmDelete && (
-        <div style={{
-          ...styles.nameInputOverlay,
-          opacity: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        }}>
-          <div style={{
-            ...styles.nameInputModal,
-            backgroundColor: 'white',
-            minWidth: '350px',
-            padding: '30px',
-            textAlign: 'center',
-          }}>
-            <h2 style={styles.nameInputTitle}>Confirm Deletion</h2>
-            <p style={{color: '#374151', marginBottom: '24px', fontFamily: 'Inter, sans-serif'}}>
-              Are you sure you want to delete the airport "{airportToDelete?.name}"? This action cannot be undone.
+        <div style={styles.nameInputOverlay}>
+          <div style={styles.nameInputModal}>
+            <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+              Delete Airport
+            </h3>
+            <p style={{marginBottom: '24px', fontFamily: 'Inter, sans-serif', color: '#6b7280'}}>
+              Are you sure you want to delete "{airportToDelete?.name}"? This action cannot be undone.
             </p>
-            <div style={{display: 'flex', justifyContent: 'space-around', gap: '12px'}}>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={cancelDeleteAirport}
+                style={styles.nameInputButtonCancel}
+              >
+                Cancel
+              </button>
               <button
                 onClick={confirmDeleteAirport}
-                style={{...styles.nameInputButton, backgroundColor: '#dc2626', color: 'white'}}
+                style={styles.nameInputButtonSubmit}
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Warning Modal */}
+      {showDuplicateWarning && (
+        <div style={styles.nameInputOverlay}>
+          <div style={styles.nameInputModal}>
+            <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+              Airport Already Exists
+            </h3>
+            <p style={{marginBottom: '24px', fontFamily: 'Inter, sans-serif', color: '#6b7280'}}>
+              An airport with ICAO "{duplicateAirportName}" already exists. Please choose a different ICAO code.
+            </p>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
               <button
-                onClick={cancelDeleteAirport}
-                style={{...styles.nameInputButton, backgroundColor: '#f3f4f6', color: '#374151'}}
+                onClick={cancelDuplicateWarning}
+                style={styles.nameInputButtonSubmit}
               >
-                Cancel
+                OK
               </button>
             </div>
           </div>
