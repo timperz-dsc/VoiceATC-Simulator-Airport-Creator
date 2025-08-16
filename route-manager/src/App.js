@@ -22,6 +22,7 @@ function App() {
   const [previousView, setPreviousView] = useState('welcome');
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [duplicateAirportName, setDuplicateAirportName] = useState('');
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -71,6 +72,13 @@ function App() {
 
   const validateFL = (value) => {
     return /^[0-9]*$/.test(value);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
   const handleInputChange = (field, value) => {
@@ -259,6 +267,11 @@ function App() {
   // }; // Removed
 
   const handleNameSubmit = () => {
+    if (!nameInputValue.trim()) {
+      showNotification('Please enter an airport name!', 'error');
+      return;
+    }
+    
     if (nameInputValue.trim()) {
       const airportName = nameInputValue.trim().toUpperCase();
       
@@ -282,6 +295,9 @@ function App() {
       setShowNameInput(false);
       setNameInputValue('');
       setSelectedAirport(newAirport.id);
+      
+      // Show success notification
+      showNotification(`Airport ${airportName} created successfully!`);
       
       // Only show animation if going to a different view
       if (currentView !== previousView) {
@@ -1623,6 +1639,35 @@ function App() {
                 <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>Configuration management coming soon...</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Notification Toast */}
+        {notification.show && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            backgroundColor: notification.type === 'success' ? '#10b981' : '#ef4444',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'slideInRight 0.3s ease-out',
+            maxWidth: '300px',
+            wordWrap: 'break-word'
+          }}>
+            <span className="material-icons" style={{ fontSize: '20px' }}>
+              {notification.type === 'success' ? 'check_circle' : 'error'}
+            </span>
+            {notification.message}
           </div>
         )}
       </div>
