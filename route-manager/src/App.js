@@ -18,6 +18,8 @@ function App() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [airportToDelete, setAirportToDelete] = useState(null);
   const [showAirportsDropdown, setShowAirportsDropdown] = useState(false);
+  const [settingsPage, setSettingsPage] = useState('airports');
+  const [previousView, setPreviousView] = useState('welcome');
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -213,15 +215,16 @@ function App() {
   };
 
   const handleNameInput = (type) => {
-    setNameInputType(type);
-    setShowNameInput(true);
-    setNameInputValue('');
     setModalAnimating(true);
-    
-    // Reset animation state after animation completes
     setTimeout(() => {
-      setModalAnimating(false);
-    }, 150);
+      setShowNameInput(true);
+      setTimeout(() => {
+        setModalAnimating(false);
+      }, 150);
+    }, 50);
+    setNameInputType(type);
+    setNameInputValue('');
+    setPreviousView(currentView);
   };
 
   const handleNameInputChange = (value) => {
@@ -255,29 +258,26 @@ function App() {
 
   const handleNameSubmit = () => {
     if (nameInputValue.trim()) {
-      if (nameInputType === 'new') {
-        const newAirport = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: nameInputValue.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        setAirports(prev => [...prev, newAirport]);
-        setShowNameInput(false);
-        setNameInputValue('');
-        
-        // Animate to your-airports view and select the new airport
-        setIsTransitioning(true);
-        setTimeout(() => {
-          setCurrentView('your-airports');
-          setSelectedAirport(newAirport.id);
-          setIsTransitioning(false);
-        }, 150);
-      } else if (nameInputType === 'new-config') {
-        // Handle new config creation here
-        console.log('New config created:', nameInputValue.trim());
-      }
+      const newAirport = {
+        id: Date.now().toString(),
+        name: nameInputValue.trim().toUpperCase(),
+        createdAt: new Date().toISOString()
+      };
+      
+      const updatedAirports = [...airports, newAirport];
+      setAirports(updatedAirports);
+      localStorage.setItem('airports', JSON.stringify(updatedAirports));
+      
       setShowNameInput(false);
       setNameInputValue('');
+      setSelectedAirport(newAirport.id);
+      
+      // Return to the previous view instead of your-airports
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentView(previousView);
+        setIsTransitioning(false);
+      }, 150);
     }
   };
 
@@ -904,6 +904,33 @@ function App() {
       fontFamily: 'Inter, sans-serif',
       fontStyle: 'italic',
     },
+    settingsNav: {
+      display: 'flex',
+      gap: '8px',
+      marginBottom: '24px',
+      borderBottom: '1px solid #e5e7eb',
+      paddingBottom: '16px',
+    },
+    settingsNavButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      fontFamily: 'Inter, sans-serif',
+      transition: 'all 0.15s ease-out',
+      backgroundColor: 'transparent',
+      color: '#6b7280',
+    },
+    settingsNavButtonActive: {
+      backgroundColor: '#0B1E39',
+      color: 'white',
+    },
+    settingsNavButtonHover: {
+      backgroundColor: '#f3f4f6',
+      color: '#0B1E39',
+    },
   };
 
   return (
@@ -1473,49 +1500,89 @@ function App() {
         {currentView === 'settings' && (
           <div style={styles.settingsContainer}>
             <h2 style={styles.settingsTitle}>Settings</h2>
-            <div style={styles.settingsSearchContainer}>
-              <span className="material-icons" style={styles.settingsSearchIcon}>search</span>
-              <input
-                type="text"
-                placeholder="Search airports..."
-                value={settingsSearchTerm}
-                onChange={(e) => setSettingsSearchTerm(e.target.value)}
-                style={styles.settingsSearchInput}
-              />
+            
+            {/* Settings Navigation */}
+            <div style={styles.settingsNav}>
+              <button
+                style={{
+                  ...styles.settingsNavButton,
+                  ...(settingsPage === 'airports' ? styles.settingsNavButtonActive : {}),
+                }}
+                onClick={() => setSettingsPage('airports')}
+                onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.settingsNavButtonHover.backgroundColor, e.target.style.color = styles.settingsNavButtonHover.color)}
+                onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.settingsNavButton.backgroundColor, e.target.style.color = styles.settingsNavButton.color)}
+              >
+                Manage Airports
+              </button>
+              <button
+                style={{
+                  ...styles.settingsNavButton,
+                  ...(settingsPage === 'configs' ? styles.settingsNavButtonActive : {}),
+                }}
+                onClick={() => setSettingsPage('configs')}
+                onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.settingsNavButtonHover.backgroundColor, e.target.style.color = styles.settingsNavButtonHover.color)}
+                onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.settingsNavButton.backgroundColor, e.target.style.color = styles.settingsNavButton.color)}
+              >
+                Manage Configs
+              </button>
             </div>
-            <div>
-              <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Airports</h3>
-              {airports.length === 0 ? (
-                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports created yet.</p>
-              ) : (
-                airports
-                  .filter(airport => 
+
+            {/* Manage Airports Page */}
+            {settingsPage === 'airports' && (
+              <div>
+                <div style={styles.settingsSearchContainer}>
+                  <span className="material-icons" style={styles.settingsSearchIcon}>search</span>
+                  <input
+                    type="text"
+                    placeholder="Search airports..."
+                    value={settingsSearchTerm}
+                    onChange={(e) => setSettingsSearchTerm(e.target.value)}
+                    style={styles.settingsSearchInput}
+                  />
+                </div>
+                <div>
+                  <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Airports</h3>
+                  {airports.length === 0 ? (
+                    <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports created yet.</p>
+                  ) : (
+                    airports
+                      .filter(airport => 
+                        airport.name.toLowerCase().includes(settingsSearchTerm.toLowerCase())
+                      )
+                      .map((airport) => (
+                        <div key={airport.id} style={styles.airportListItem}>
+                          <div style={styles.airportListInfo}>
+                            <span style={styles.airportListName}>{airport.name}</span>
+                            <span style={styles.airportListDate}>
+                              &nbsp;&nbsp;&nbsp;&nbsp;Created {new Date(airport.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteAirport(airport.id)}
+                            style={styles.deleteButton}
+                          >
+                            <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                            Delete
+                          </button>
+                        </div>
+                      ))
+                  )}
+                  {airports.length > 0 && airports.filter(airport => 
                     airport.name.toLowerCase().includes(settingsSearchTerm.toLowerCase())
-                  )
-                  .map((airport) => (
-                    <div key={airport.id} style={styles.airportListItem}>
-                      <div style={styles.airportListInfo}>
-                        <span style={styles.airportListName}>{airport.name}</span>
-                        <span style={styles.airportListDate}>
-                          Created {new Date(airport.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteAirport(airport.id)}
-                        style={styles.deleteButton}
-                      >
-                        <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
-                        Delete
-                      </button>
-                    </div>
-                  ))
-              )}
-              {airports.length > 0 && airports.filter(airport => 
-                airport.name.toLowerCase().includes(settingsSearchTerm.toLowerCase())
-              ).length === 0 && (
-                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports found matching your search.</p>
-              )}
-            </div>
+                  ).length === 0 && (
+                    <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports found matching your search.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Manage Configs Page */}
+            {settingsPage === 'configs' && (
+              <div>
+                <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Configurations</h3>
+                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>Configuration management coming soon...</p>
+              </div>
+            )}
           </div>
         )}
       </div>
