@@ -1,0 +1,16 @@
+{
+  "short_name": "VoiceATC",
+  "name": "VoiceATC Airport Creator",
+  "description": "Manage and organize your flight routes",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0B1E39",
+  "background_color": "#f8fafc"
+}
