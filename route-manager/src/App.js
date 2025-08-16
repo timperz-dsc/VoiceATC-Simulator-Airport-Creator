@@ -8,6 +8,10 @@ function App() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [currentView, setCurrentView] = useState('welcome');
   const [airports, setAirports] = useState([]);
+  const [configs, setConfigs] = useState([
+    { id: '1', name: 'Config 1', type: 'default' },
+    { id: '2', name: 'Config 2', type: 'default' }
+  ]);
   const [showNameInput, setShowNameInput] = useState(false);
   const [nameInputType, setNameInputType] = useState('');
   const [nameInputValue, setNameInputValue] = useState('');
@@ -15,13 +19,41 @@ function App() {
   const [modalAnimating, setModalAnimating] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState('');
   const [settingsSearchTerm, setSettingsSearchTerm] = useState('');
+  const [configSearchTerm, setConfigSearchTerm] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [airportToDelete, setAirportToDelete] = useState(null);
   const [showAirportsDropdown, setShowAirportsDropdown] = useState(false);
+  const [showSubDropdown, setShowSubDropdown] = useState(null);
+  const [clickedAirport, setClickedAirport] = useState(null);
+  const [showGeneralFilesDropdown, setShowGeneralFilesDropdown] = useState(null);
+  const [showConfig1Dropdown, setShowConfig1Dropdown] = useState(null);
+  const [showConfig2Dropdown, setShowConfig2Dropdown] = useState(null);
+  const [openConfigDropdowns, setOpenConfigDropdowns] = useState({});
+  const [showNavAidsDropdown, setShowNavAidsDropdown] = useState(null);
+  const [showProcsDropdown, setShowProcsDropdown] = useState(null);
+  const [activeFourthLevelDropdown, setActiveFourthLevelDropdown] = useState(null);
   const [settingsPage, setSettingsPage] = useState('airports');
+  const [showTrafficView, setShowTrafficView] = useState(null);
+  const [currentAirportView, setCurrentAirportView] = useState(null);
   const [previousView, setPreviousView] = useState('welcome');
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [duplicateAirportName, setDuplicateAirportName] = useState('');
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [buttonHover, setButtonHover] = useState({ cancel: false, submit: false, delete: false, ok: false });
+  const [showRenameConfig, setShowRenameConfig] = useState(false);
+  const [configToRename, setConfigToRename] = useState('');
+  const [newConfigName, setNewConfigName] = useState('');
+  const [showDeleteConfigConfirm, setShowDeleteConfigConfirm] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState('');
+  const [showRenameAirport, setShowRenameAirport] = useState(false);
+  const [airportToRename, setAirportToRename] = useState(null);
+  const [newAirportName, setNewAirportName] = useState('');
+  const [selectedAirportForConfig, setSelectedAirportForConfig] = useState('');
+  const [showAirportDropdownForConfig, setShowAirportDropdownForConfig] = useState(false);
+  const [airportSearchForConfig, setAirportSearchForConfig] = useState('');
+  const [selectedAirportForManageConfigs, setSelectedAirportForManageConfigs] = useState('');
+  const [showAirportDropdownForManageConfigs, setShowAirportDropdownForManageConfigs] = useState(false);
+  const [airportSearchForManageConfigs, setAirportSearchForManageConfigs] = useState('');
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -71,6 +103,13 @@ function App() {
 
   const validateFL = (value) => {
     return /^[0-9]*$/.test(value);
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
   const handleInputChange = (field, value) => {
@@ -207,11 +246,32 @@ function App() {
   const handleLogoClick = () => {
     if (currentView === 'welcome') return;
     
+    // Close all dropdowns and objects
+    setShowAirportsDropdown(false);
+    setClickedAirport(null);
+    setShowSubDropdown(null);
+    setShowGeneralFilesDropdown(null);
+    setShowConfig1Dropdown(null);
+    setShowConfig2Dropdown(null);
+    setShowNavAidsDropdown(null);
+    setShowProcsDropdown(null);
+    setShowTrafficView(null);
+    setActiveFourthLevelDropdown(null);
+    setOpenConfigDropdowns({});
+    setCurrentAirportView(null);
+    setShowNameInput(false);
+    setNameInputValue('');
+    setNameInputType('');
+    setSelectedAirportForConfig('');
+    setShowAirportDropdownForConfig(false);
+    setAirportSearchForConfig('');
+    setSelectedAirportForManageConfigs('');
+    setShowAirportDropdownForManageConfigs(false);
+    setAirportSearchForManageConfigs('');
+    
     setIsTransitioning(true);
     setTimeout(() => {
       setCurrentView('welcome');
-      setShowNameInput(false);
-      setNameInputValue('');
       setIsTransitioning(false);
     }, 150);
   };
@@ -239,6 +299,29 @@ function App() {
     // Close dropdown if clicking outside
     if (showAirportsDropdown && !event.target.closest('[data-dropdown]')) {
       setShowAirportsDropdown(false);
+      setClickedAirport(null);
+      setShowSubDropdown(null);
+      setShowGeneralFilesDropdown(null);
+      setShowConfig1Dropdown(null);
+      setShowConfig2Dropdown(null);
+      setShowNavAidsDropdown(null);
+      setShowProcsDropdown(null);
+      setShowTrafficView(null);
+      setActiveFourthLevelDropdown(null);
+    }
+  };
+
+  const handleFourthLevelDropdown = (dropdownType, airportId) => {
+    if (activeFourthLevelDropdown === dropdownType) {
+      // Close the current dropdown
+      setActiveFourthLevelDropdown(null);
+      setShowNavAidsDropdown(null);
+      setShowProcsDropdown(null);
+    } else {
+      // Close all fourth-level dropdowns first, then open the selected one
+      setActiveFourthLevelDropdown(dropdownType);
+      setShowNavAidsDropdown(dropdownType === 'navAids' ? airportId : null);
+      setShowProcsDropdown(dropdownType === 'procs' ? airportId : null);
     }
   };
 
@@ -259,6 +342,41 @@ function App() {
   // }; // Removed
 
   const handleNameSubmit = () => {
+    if (nameInputType === 'new-config') {
+      // For new-config, validate airport selection and create config
+      if (!selectedAirportForConfig) {
+        showNotification('Please select an airport!', 'error');
+        return;
+      }
+      
+      const configName = `Config ${nameInputValue.trim()}`;
+      
+      // Add the new config to the configs array
+      const newConfig = {
+        id: Date.now().toString(),
+        name: configName,
+        airport: selectedAirportForConfig,
+        type: 'custom'
+      };
+      
+      const updatedConfigs = [...configs, newConfig];
+      setConfigs(updatedConfigs);
+      
+      showNotification(`Config ${configName} created for ${selectedAirportForConfig} successfully!`);
+      
+      setShowNameInput(false);
+      setNameInputValue('');
+      setNameInputType('');
+      setSelectedAirportForConfig('');
+      setShowAirportDropdownForConfig(false);
+      setAirportSearchForConfig('');
+    } else {
+      // For new airport
+    if (!nameInputValue.trim()) {
+      showNotification('Please enter an airport name!', 'error');
+      return;
+    }
+    
     if (nameInputValue.trim()) {
       const airportName = nameInputValue.trim().toUpperCase();
       
@@ -283,6 +401,9 @@ function App() {
       setNameInputValue('');
       setSelectedAirport(newAirport.id);
       
+      // Show success notification
+      showNotification(`Airport ${airportName} created successfully!`);
+      
       // Only show animation if going to a different view
       if (currentView !== previousView) {
         setIsTransitioning(true);
@@ -293,6 +414,7 @@ function App() {
       } else {
         // If staying on the same page, just update the view without animation
         setCurrentView(previousView);
+        }
       }
     }
   };
@@ -300,6 +422,10 @@ function App() {
   const handleNameCancel = () => {
     setShowNameInput(false);
     setNameInputValue('');
+    setNameInputType('');
+    setSelectedAirportForConfig('');
+    setShowAirportDropdownForConfig(false);
+    setAirportSearchForConfig('');
   };
 
   const handleDeleteAirport = (airportId) => {
@@ -332,6 +458,130 @@ function App() {
   const cancelDuplicateWarning = () => {
     setShowDuplicateWarning(false);
     setDuplicateAirportName('');
+  };
+
+  // Config management functions
+  const handleRenameConfig = (configName) => {
+    setConfigToRename(configName);
+    // Extract the part after "Config " for editing
+    const afterConfig = configName.replace(/^Config /, '');
+    setNewConfigName(`Config ${afterConfig}`);
+    setShowRenameConfig(true);
+  };
+
+  const handleDeleteConfig = (configName) => {
+    setConfigToDelete(configName);
+    setShowDeleteConfigConfirm(true);
+  };
+
+  const confirmRenameConfig = () => {
+    if (!newConfigName.trim()) {
+      showNotification('Please enter a config name!', 'error');
+      return;
+    }
+    
+    // Update the config name in the configs array
+    const updatedConfigs = configs.map(config => 
+      config.name === configToRename 
+        ? { ...config, name: newConfigName }
+        : config
+    );
+    
+    setConfigs(updatedConfigs);
+    
+    showNotification(`Config renamed from "${configToRename}" to "${newConfigName}" successfully!`);
+    
+    setShowRenameConfig(false);
+    setConfigToRename('');
+    setNewConfigName('');
+  };
+
+  const cancelRenameConfig = () => {
+    setShowRenameConfig(false);
+    setConfigToRename('');
+    setNewConfigName('');
+  };
+
+  const confirmDeleteConfig = () => {
+    // Remove the config from the configs array
+    const updatedConfigs = configs.filter(config => config.name !== configToDelete);
+    setConfigs(updatedConfigs);
+    
+    showNotification(`Config "${configToDelete}" deleted successfully!`);
+    
+    setShowDeleteConfigConfirm(false);
+    setConfigToDelete('');
+  };
+
+  const cancelDeleteConfig = () => {
+    setShowDeleteConfigConfirm(false);
+    setConfigToDelete('');
+  };
+
+  // Airport rename functions
+  const handleRenameAirport = (airport) => {
+    setAirportToRename(airport);
+    setNewAirportName(airport.name);
+    setShowRenameAirport(true);
+  };
+
+  const confirmRenameAirport = () => {
+    if (!newAirportName.trim()) {
+      showNotification('Please enter an airport name!', 'error');
+      return;
+    }
+    
+    const airportName = newAirportName.trim().toUpperCase();
+    
+    // Check if airport with this ICAO already exists (excluding the current one being renamed)
+    const existingAirport = airports.find(airport => 
+      airport.name === airportName && airport.id !== airportToRename.id
+    );
+    if (existingAirport) {
+      showNotification(`Airport with ICAO "${airportName}" already exists!`, 'error');
+      return;
+    }
+    
+    // Update the airport name
+    const updatedAirports = airports.map(airport => 
+      airport.id === airportToRename.id 
+        ? { ...airport, name: airportName }
+        : airport
+    );
+    
+    setAirports(updatedAirports);
+    localStorage.setItem('airports', JSON.stringify(updatedAirports));
+    
+    showNotification(`Airport renamed to "${airportName}" successfully!`);
+    
+    setShowRenameAirport(false);
+    setAirportToRename(null);
+    setNewAirportName('');
+  };
+
+  const cancelRenameAirport = () => {
+    setShowRenameAirport(false);
+    setAirportToRename(null);
+    setNewAirportName('');
+  };
+
+  // Helper function to get config name by ID
+  const getConfigName = (configId) => {
+    const config = configs.find(c => c.id === configId);
+    return config ? config.name : `Config ${configId}`;
+  };
+
+  // Helper function to handle config dropdown toggle
+  const toggleConfigDropdown = (configId, airportId) => {
+    setOpenConfigDropdowns(prev => ({
+      ...prev,
+      [configId]: prev[configId] === airportId ? null : airportId
+    }));
+  };
+
+  // Helper function to check if config dropdown is open
+  const isConfigDropdownOpen = (configId, airportId) => {
+    return openConfigDropdowns[configId] === airportId;
   };
 
   const handleSort = (field) => {
@@ -720,21 +970,34 @@ function App() {
       justifyContent: 'flex-end',
     },
     nameInputButton: {
-      padding: '8px 16px',
+      padding: '10px 20px',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       fontSize: '14px',
       fontWeight: '500',
       cursor: 'pointer',
       fontFamily: 'Inter, sans-serif',
+      minWidth: '80px',
     },
     nameInputButtonCancel: {
-      backgroundColor: '#f3f4f6',
+      backgroundColor: '#ffffff',
       color: '#374151',
+      border: '1px solid #d1d5db',
+      transition: 'all 0.2s ease',
     },
     nameInputButtonSubmit: {
       backgroundColor: '#0B1E39',
       color: 'white',
+      border: '1px solid #0B1E39',
+      transition: 'all 0.2s ease',
+    },
+    nameInputButtonCancelHover: {
+      backgroundColor: '#f9fafb',
+      borderColor: '#9ca3af',
+    },
+    nameInputButtonSubmitHover: {
+      backgroundColor: '#1e3a8a',
+      borderColor: '#1e3a8a',
     },
     airportsList: {
       backgroundColor: 'white',
@@ -902,8 +1165,6 @@ function App() {
       borderRadius: '8px',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
       minWidth: '200px',
-      maxHeight: '300px',
-      overflowY: 'auto',
       marginTop: '4px',
       position: 'relative',
       zIndex: 9999,
@@ -922,6 +1183,86 @@ function App() {
     navDropdownItemSelected: {
       backgroundColor: '#f3f4f6',
       color: '#0B1E39',
+    },
+    navDropdownItemWithArrow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    navDropdownArrow: {
+      fontSize: '18px',
+      color: 'inherit',
+      transition: 'transform 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    navSubDropdownContainer: {
+      position: 'absolute',
+      left: '100%',
+      top: '0',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      minWidth: '140px',
+      zIndex: 10000,
+    },
+    navSubDropdownItem: {
+      padding: '12px 16px',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      cursor: 'pointer',
+      borderBottom: '1px solid #f3f4f6',
+      transition: 'background-color 0.15s ease-out',
+      color: '#374151',
+    },
+    navSubDropdownItemHover: {
+      backgroundColor: '#f9fafb',
+    },
+    navSubDropdownItemSelected: {
+      backgroundColor: '#f3f4f6',
+      color: '#0B1E39',
+      fontWeight: '500',
+    },
+    navSubDropdownItemWithArrow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    navGeneralFilesDropdownContainer: {
+      position: 'absolute',
+      left: '100%',
+      top: '0',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      minWidth: '120px',
+      zIndex: 10001,
+    },
+    navConfigDropdownContainer: {
+      position: 'absolute',
+      left: '100%',
+      top: '0',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      minWidth: '120px',
+      zIndex: 10001,
+    },
+    navFourthLevelDropdownContainer: {
+      position: 'absolute',
+      left: '100%',
+      top: '0',
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      minWidth: '120px',
+      zIndex: 10002,
     },
     navDropdownEmpty: {
       padding: '12px 16px',
@@ -1021,7 +1362,12 @@ function App() {
               position: 'relative',
               // ...(buttonAnimating === 'your-airports' ? styles.navButtonAnimating : {}), // Removed
             }}
-            onClick={() => setShowAirportsDropdown(!showAirportsDropdown)}
+            onClick={() => {
+              setShowAirportsDropdown(!showAirportsDropdown);
+              if (showAirportsDropdown) {
+                setShowSubDropdown(null);
+              }
+            }}
             onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
             onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
             data-dropdown
@@ -1041,42 +1387,1026 @@ function App() {
                       key={airport.id}
                       style={{
                         ...styles.navDropdownItem,
+                        ...styles.navDropdownItemWithArrow,
                         ...(selectedAirport === airport.id ? styles.navDropdownItemSelected : {}),
                       }}
                       onClick={() => {
-                        setSelectedAirport(airport.id);
-                        setShowAirportsDropdown(false);
+                        console.log('Airport clicked:', airport.name, 'Current clickedAirport:', clickedAirport);
+                        if (clickedAirport === airport.id) {
+                          setClickedAirport(null);
+                          setShowSubDropdown(null);
+                        } else {
+                          setClickedAirport(airport.id);
+                          setShowSubDropdown(airport.id);
+                        }
                       }}
                       onMouseEnter={(e) => {
-                        if (selectedAirport !== airport.id) {
+                        if (selectedAirport !== airport.id && clickedAirport !== airport.id) {
                           e.target.style.backgroundColor = styles.navDropdownItemHover.backgroundColor;
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (selectedAirport !== airport.id) {
+                        if (selectedAirport !== airport.id && clickedAirport !== airport.id) {
                           e.target.style.backgroundColor = '';
                         }
                       }}
                     >
-                      {airport.name}
+                      <span>{airport.name}</span>
+                      <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                      
+                      {/* Sub-dropdown */}
+                      {console.log('Rendering sub-dropdown for:', airport.name, 'showSubDropdown:', showSubDropdown, 'airport.id:', airport.id)}
+                      {showSubDropdown === airport.id && (
+                        <div 
+                          style={styles.navSubDropdownContainer}
+                        >
+                          <div 
+                            style={{
+                              ...styles.navSubDropdownItem,
+                              ...styles.navSubDropdownItemWithArrow,
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent event from bubbling up to parent
+                              console.log('General Files clicked for:', airport.name, 'Current showGeneralFilesDropdown:', showGeneralFilesDropdown, 'airport.id:', airport.id);
+                              if (showGeneralFilesDropdown === airport.id) {
+                                setShowGeneralFilesDropdown(null);
+                              } else {
+                                // Close all other third-level dropdowns first
+                                setShowGeneralFilesDropdown(null);
+                                setShowConfig1Dropdown(null);
+                                setShowConfig2Dropdown(null);
+                                setShowNavAidsDropdown(null);
+                                setShowProcsDropdown(null);
+                                setShowTrafficView(null);
+                                // Then open this one
+                                setShowGeneralFilesDropdown(airport.id);
+                              }
+                            }}
+                          >
+                            <span>General Files</span>
+                            <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                            
+                            {/* General Files Sub-dropdown */}
+                            {console.log('Rendering General Files dropdown for:', airport.name, 'showGeneralFilesDropdown:', showGeneralFilesDropdown, 'airport.id:', airport.id)}
+                            {showGeneralFilesDropdown === airport.id && (
+                              <div style={styles.navGeneralFilesDropdownContainer}>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log('INFO clicked for', airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'info' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'info', airport: airport });
+                                    }
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  <span>INFO</span>
+                                  {currentAirportView && currentAirportView.type === 'info' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log('RUNWAYS clicked for', airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'runways' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'runways', airport: airport });
+                                    }
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  <span>RUNWAYS</span>
+                                  {currentAirportView && currentAirportView.type === 'runways' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log('GEO clicked for', airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'geo' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'geo', airport: airport });
+                                    }
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  <span>GEO</span>
+                                  {currentAirportView && currentAirportView.type === 'geo' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log('MRVA clicked for', airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'mrva' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'mrva', airport: airport });
+                                    }
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  <span>MRVA</span>
+                                  {currentAirportView && currentAirportView.type === 'mrva' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'traffic' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'traffic', airport: airport });
+                                    }
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  <span>TRAFFIC</span>
+                                  {currentAirportView && currentAirportView.type === 'traffic' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div 
+                            style={{
+                              ...styles.navSubDropdownItem,
+                              ...styles.navSubDropdownItemWithArrow,
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (showConfig1Dropdown === airport.id) {
+                                setShowConfig1Dropdown(null);
+                              } else {
+                                // Close all other third-level dropdowns first
+                                setShowGeneralFilesDropdown(null);
+                                setShowConfig1Dropdown(null);
+                                setShowConfig2Dropdown(null);
+                                setShowNavAidsDropdown(null);
+                                setShowProcsDropdown(null);
+                                setShowTrafficView(null);
+                                // Then open this one
+                                setShowConfig1Dropdown(airport.id);
+                              }
+                            }}
+                          >
+                            <span>{getConfigName('1')}</span>
+                            <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                            
+                            {/* Config 1 Sub-dropdown */}
+                            {showConfig1Dropdown === airport.id && (
+                              <div style={styles.navConfigDropdownContainer}>
+                                <div 
+                                  style={styles.navSubDropdownItem}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log(`GLIDEPATH clicked for ${getConfigName('1')}`, airport.name);
+                                    // Close all dropdowns
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  GLIDEPATH
+                                </div>
+                                <div 
+                                  style={styles.navSubDropdownItem}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log(`SECTORS clicked for ${getConfigName('1')}`, airport.name);
+                                    // Close all dropdowns
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  SECTORS
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    ...styles.navSubDropdownItemWithArrow,
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (showNavAidsDropdown === airport.id) {
+                                      setShowNavAidsDropdown(null);
+                                    } else {
+                                      setShowNavAidsDropdown(airport.id);
+                                      setShowProcsDropdown(null); // Close PROCS dropdown when opening NAVAIDS
+                                    }
+                                  }}
+                                >
+                                  <span>NAVAIDS</span>
+                                  <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                  
+                                  {/* NAVAIDS Sub-dropdown */}
+                                  {showNavAidsDropdown === airport.id && (
+                                    <div style={styles.navFourthLevelDropdownContainer}>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`FIX clicked for NAVAIDS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        FIX
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`VOR clicked for NAVAIDS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        VOR
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    ...styles.navSubDropdownItemWithArrow,
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (showProcsDropdown === airport.id) {
+                                      setShowProcsDropdown(null);
+                                    } else {
+                                      setShowProcsDropdown(airport.id);
+                                      setShowNavAidsDropdown(null); // Close NAVAIDS dropdown when opening PROCS
+                                    }
+                                  }}
+                                >
+                                  <span>PROCS</span>
+                                  <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                  
+                                  {/* PROCS Sub-dropdown */}
+                                  {showProcsDropdown === airport.id && (
+                                    <div style={styles.navFourthLevelDropdownContainer}>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`IAC clicked for PROCS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        IAC
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`SID clicked for PROCS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        SID
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`STAR clicked for PROCS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        STAR
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`TRANSITION clicked for PROCS ${getConfigName('1')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        TRANSITION
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div 
+                            style={{
+                              ...styles.navSubDropdownItem,
+                              ...styles.navSubDropdownItemWithArrow,
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (showConfig2Dropdown === airport.id) {
+                                setShowConfig2Dropdown(null);
+                              } else {
+                                // Close all other third-level dropdowns first
+                                setShowGeneralFilesDropdown(null);
+                                setShowConfig1Dropdown(null);
+                                setShowConfig2Dropdown(null);
+                                setShowNavAidsDropdown(null);
+                                setShowProcsDropdown(null);
+                                setShowTrafficView(null);
+                                // Then open this one
+                                setShowConfig2Dropdown(airport.id);
+                              }
+                            }}
+                          >
+                            <span>{getConfigName('2')}</span>
+                            <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                            
+                            {/* Config 2 Sub-dropdown */}
+                            {showConfig2Dropdown === airport.id && (
+                              <div style={styles.navConfigDropdownContainer}>
+                                <div 
+                                  style={styles.navSubDropdownItem}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log(`GLIDEPATH clicked for ${getConfigName('2')}`, airport.name);
+                                    // Close all dropdowns
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  GLIDEPATH
+                                </div>
+                                <div 
+                                  style={styles.navSubDropdownItem}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log(`SECTORS clicked for ${getConfigName('2')}`, airport.name);
+                                    // Close all dropdowns
+                                    setShowAirportsDropdown(false);
+                                    setClickedAirport(null);
+                                    setShowGeneralFilesDropdown(null);
+                                    setShowConfig1Dropdown(null);
+                                    setShowConfig2Dropdown(null);
+                                    setShowNavAidsDropdown(null);
+                                    setShowProcsDropdown(null);
+                                    setShowTrafficView(null);
+                                    setActiveFourthLevelDropdown(null);
+                                  }}
+                                >
+                                  SECTORS
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    ...styles.navSubDropdownItemWithArrow,
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (showNavAidsDropdown === airport.id) {
+                                      setShowNavAidsDropdown(null);
+                                    } else {
+                                      setShowNavAidsDropdown(airport.id);
+                                      setShowProcsDropdown(null); // Close PROCS dropdown when opening NAVAIDS
+                                    }
+                                  }}
+                                >
+                                  <span>NAVAIDS</span>
+                                  <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                  
+                                  {/* NAVAIDS Sub-dropdown */}
+                                  {showNavAidsDropdown === airport.id && (
+                                    <div style={styles.navFourthLevelDropdownContainer}>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`FIX clicked for NAVAIDS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        FIX
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`VOR clicked for NAVAIDS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        VOR
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    ...styles.navSubDropdownItemWithArrow,
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (showProcsDropdown === airport.id) {
+                                      setShowProcsDropdown(null);
+                                    } else {
+                                      setShowProcsDropdown(airport.id);
+                                      setShowNavAidsDropdown(null); // Close NAVAIDS dropdown when opening PROCS
+                                    }
+                                  }}
+                                >
+                                  <span>PROCS</span>
+                                  <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                  
+                                  {/* PROCS Sub-dropdown */}
+                                  {showProcsDropdown === airport.id && (
+                                    <div style={styles.navFourthLevelDropdownContainer}>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`IAC clicked for PROCS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        IAC
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`SID clicked for PROCS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        SID
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`STAR clicked for PROCS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        STAR
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`TRANSITION clicked for PROCS ${getConfigName('2')}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        TRANSITION
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Dynamic Custom Configs */}
+                          {configs
+                            .filter(config => config.type === 'custom' && config.airport === airport.name)
+                            .map((config) => (
+                              <div key={config.id}>
+                                <div 
+                                  style={{
+                                    ...styles.navSubDropdownItem,
+                                    ...styles.navSubDropdownItemWithArrow,
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (openConfigDropdowns[config.id] === airport.id) {
+                                      setOpenConfigDropdowns(prev => ({ ...prev, [config.id]: null }));
+                                    } else {
+                                      // Close all other third-level dropdowns first
+                                      setShowGeneralFilesDropdown(null);
+                                      setShowConfig1Dropdown(null);
+                                      setShowConfig2Dropdown(null);
+                                      setShowNavAidsDropdown(null);
+                                      setShowProcsDropdown(null);
+                                      setShowTrafficView(null);
+                                      // Then open this one
+                                      setOpenConfigDropdowns(prev => ({ ...prev, [config.id]: airport.id }));
+                                    }
+                                  }}
+                                >
+                                  <span>{config.name}</span>
+                                  <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                  
+                                  {/* Custom Config Sub-dropdown */}
+                                  {openConfigDropdowns[config.id] === airport.id && (
+                                    <div style={styles.navConfigDropdownContainer}>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`GLIDEPATH clicked for ${config.name}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                          setOpenConfigDropdowns({});
+                                        }}
+                                      >
+                                        GLIDEPATH
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`SECTORS clicked for ${config.name}`, airport.name);
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                          setOpenConfigDropdowns({});
+                                        }}
+                                      >
+                                        SECTORS
+                                      </div>
+                                      <div 
+                                        style={{
+                                          ...styles.navSubDropdownItem,
+                                          ...styles.navSubDropdownItemWithArrow,
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (showNavAidsDropdown === airport.id) {
+                                            setShowNavAidsDropdown(null);
+                                          } else {
+                                            setShowNavAidsDropdown(airport.id);
+                                            setShowProcsDropdown(null); // Close PROCS dropdown when opening NAVAIDS
+                                          }
+                                        }}
+                                      >
+                                        <span>NAVAIDS</span>
+                                        <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                        
+                                        {/* NAVAIDS Sub-dropdown */}
+                                        {showNavAidsDropdown === airport.id && (
+                                          <div style={styles.navFourthLevelDropdownContainer}>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`FIX clicked for NAVAIDS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              FIX
+                                            </div>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`VOR clicked for NAVAIDS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              VOR
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div 
+                                        style={{
+                                          ...styles.navSubDropdownItem,
+                                          ...styles.navSubDropdownItemWithArrow,
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (showProcsDropdown === airport.id) {
+                                            setShowProcsDropdown(null);
+                                          } else {
+                                            setShowProcsDropdown(airport.id);
+                                            setShowNavAidsDropdown(null); // Close NAVAIDS dropdown when opening PROCS
+                                          }
+                                        }}
+                                      >
+                                        <span>PROCS</span>
+                                        <span className="material-symbols-outlined" style={styles.navDropdownArrow}>arrow_forward_ios</span>
+                                        
+                                        {/* PROCS Sub-dropdown */}
+                                        {showProcsDropdown === airport.id && (
+                                          <div style={styles.navFourthLevelDropdownContainer}>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`IAC clicked for PROCS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              IAC
+                                            </div>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`SID clicked for PROCS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              SID
+                                            </div>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`STAR clicked for PROCS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              STAR
+                                            </div>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`TRANSITION clicked for PROCS ${config.name}`, airport.name);
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              TRANSITION
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
           )}
-          <button
-            style={{
-              ...styles.navButton,
-              ...(currentView === 'traffic' ? styles.navButtonActive : {}),
-              // ...(buttonAnimating === 'traffic' ? styles.navButtonAnimating : {}), // Removed
-            }}
-            onClick={() => handleNavigation('traffic')}
-            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
-            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
-          >
-            Traffic
-          </button>
+
           <button
             style={{
               ...styles.navButton,
@@ -1122,6 +2452,172 @@ function App() {
             ...styles.nameInputModal,
             transform: modalAnimating ? 'scale(0.8)' : 'scale(1)',
           }}>
+            {nameInputType === 'new-config' && (
+              <>
+                <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+                  Create New Configuration
+                </h3>
+                
+                {/* Airport Selection */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontFamily: 'Inter, sans-serif', color: '#374151', fontSize: '14px', fontWeight: '500'}}>
+                    Select Airport
+                  </label>
+                  <div style={{position: 'relative'}}>
+                    <div
+                      style={{
+                        ...styles.nameInputField,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                      onClick={() => setShowAirportDropdownForConfig(!showAirportDropdownForConfig)}
+                    >
+                      <span style={{color: selectedAirportForConfig ? '#0B1E39' : '#9ca3af'}}>
+                        {selectedAirportForConfig || 'Select an airport...'}
+                      </span>
+                      <span className="material-icons" style={{fontSize: '20px', color: '#6b7280'}}>
+                        {showAirportDropdownForConfig ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                      </span>
+                    </div>
+                    
+                    {/* Airport Dropdown */}
+                    {showAirportDropdownForConfig && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        zIndex: 1000,
+                        maxHeight: '200px',
+                        overflow: 'auto',
+                        overflowX: 'hidden'
+                      }}>
+                        {/* Search Input */}
+                        <div style={{padding: '8px', borderBottom: '1px solid #e5e7eb'}}>
+                          <input
+                            type="text"
+                            placeholder="Search airports..."
+                            value={airportSearchForConfig}
+                            onChange={(e) => setAirportSearchForConfig(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontFamily: 'Inter, sans-serif',
+                              boxSizing: 'border-box'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        
+                        {/* Airport List */}
+                        {airports.length === 0 ? (
+                          <div style={{padding: '12px', color: '#6b7280', fontFamily: 'Inter, sans-serif', fontSize: '14px'}}>
+                            No airports available
+                          </div>
+                        ) : (
+                          airports
+                            .filter(airport => 
+                              airport.name.toLowerCase().includes(airportSearchForConfig.toLowerCase())
+                            )
+                            .map((airport) => (
+                                                             <div
+                                 key={airport.id}
+                                 style={{
+                                   padding: '12px',
+                                   cursor: 'pointer',
+                                   fontFamily: 'Inter, sans-serif',
+                                   fontSize: '14px',
+                                   color: '#0B1E39',
+                                   borderBottom: '1px solid #f3f4f6',
+                                   backgroundColor: selectedAirportForConfig === airport.name ? '#f3f4f6' : 'white',
+                                   whiteSpace: 'nowrap',
+                                   overflow: 'hidden',
+                                   textOverflow: 'ellipsis'
+                                 }}
+                                onClick={() => {
+                                  setSelectedAirportForConfig(airport.name);
+                                  setShowAirportDropdownForConfig(false);
+                                  setAirportSearchForConfig('');
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (selectedAirportForConfig !== airport.name) {
+                                    e.target.style.backgroundColor = '#f9fafb';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (selectedAirportForConfig !== airport.name) {
+                                    e.target.style.backgroundColor = 'white';
+                                  }
+                                }}
+                              >
+                                {airport.name}
+                              </div>
+                            ))
+                        )}
+                        {airports.length > 0 && airports.filter(airport => 
+                          airport.name.toLowerCase().includes(airportSearchForConfig.toLowerCase())
+                        ).length === 0 && (
+                          <div style={{padding: '12px', color: '#6b7280', fontFamily: 'Inter, sans-serif', fontSize: '14px'}}>
+                            No airports found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Config Name Input */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontFamily: 'Inter, sans-serif', color: '#374151', fontSize: '14px', fontWeight: '500'}}>
+                    Configuration Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Config "
+                    value={nameInputType === 'new-config' ? `Config ${nameInputValue}` : nameInputValue}
+                    onChange={(e) => {
+                      if (nameInputType === 'new-config') {
+                        // For new-config, only allow editing the part after "Config "
+                        const fullValue = e.target.value;
+                        if (fullValue.startsWith('Config ')) {
+                          const afterConfig = fullValue.substring(7); // Remove "Config " (7 characters including space)
+                          const filtered = afterConfig.replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+                          setNameInputValue(filtered);
+                        } else {
+                          // If user tries to delete "Config ", keep it
+                          setNameInputValue(nameInputValue);
+                        }
+                      } else {
+                        handleNameInputChange(e.target.value);
+                      }
+                    }}
+                    style={styles.nameInputField}
+                    onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                  />
+                </div>
+              </>
+            )}
+            
+            {nameInputType !== 'new-config' && (
+              <>
+                <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+                  Create New Airport
+                </h3>
+                
+                {/* Airport Name Input */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontFamily: 'Inter, sans-serif', color: '#374151', fontSize: '14px', fontWeight: '500'}}>
+                    Airport ICAO Code
+                  </label>
             <input
               type="text"
               placeholder="Enter ICAO..."
@@ -1131,16 +2627,31 @@ function App() {
               autoFocus
               onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
             />
+                </div>
+              </>
+            )}
             <div style={styles.nameInputButtons}>
               <button
                 onClick={handleNameCancel}
-                style={{...styles.nameInputButton, ...styles.nameInputButtonCancel}}
+                onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonCancel,
+                  ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleNameSubmit}
-                style={{...styles.nameInputButton, ...styles.nameInputButtonSubmit}}
+                onMouseEnter={() => setButtonHover({...buttonHover, submit: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, submit: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonSubmit,
+                  ...(buttonHover.submit ? styles.nameInputButtonSubmitHover : {})
+                }}
               >
                 Create
               </button>
@@ -1162,13 +2673,25 @@ function App() {
             <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
               <button
                 onClick={cancelDeleteAirport}
-                style={styles.nameInputButtonCancel}
+                onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonCancel,
+                  ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteAirport}
-                style={styles.nameInputButtonSubmit}
+                onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonSubmit,
+                  ...(buttonHover.delete ? styles.nameInputButtonSubmitHover : {})
+                }}
               >
                 Delete
               </button>
@@ -1190,7 +2713,13 @@ function App() {
             <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
               <button
                 onClick={cancelDuplicateWarning}
-                style={styles.nameInputButtonSubmit}
+                onMouseEnter={() => setButtonHover({...buttonHover, ok: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, ok: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonSubmit,
+                  ...(buttonHover.ok ? styles.nameInputButtonSubmitHover : {})
+                }}
               >
                 OK
               </button>
@@ -1204,15 +2733,25 @@ function App() {
         ...styles.contentContainer,
         ...(isTransitioning ? styles.contentContainerTransitioning : {}),
       }}>
-        {currentView === 'welcome' && (
+        {currentView === 'welcome' && !currentAirportView && (
           <div style={styles.welcomeContainer}>
             <h2 style={styles.welcomeTitle}>Welcome to VoiceATC Airport Creator</h2>
-            <p style={styles.welcomeSubtitle}>Navigate to Your Airports to begin!</p>
+            <p style={styles.welcomeSubtitle}>
+              {airports.length === 0 
+                ? "Navigate to New Airport to begin!" 
+                : "Navigate to Your Airports to begin!"
+              }
+            </p>
           </div>
         )}
 
-        {currentView === 'traffic' && (
+        {/* Airport Views */}
+        {currentAirportView && (
           <div style={{flex: '1', overflow: 'auto', padding: '24px'}}>
+            {currentAirportView.type === 'traffic' && (
+              <div>
+                <h2 style={styles.cardTitle}>Traffic Management for {currentAirportView.airport.name}</h2>
+                
             {/* Input Section */}
             <div style={styles.card}>
               <h2 style={styles.cardTitle}>Add New Route</h2>
@@ -1221,7 +2760,7 @@ function App() {
                   <label style={styles.label}>Airport</label>
                   <input
                     type="text"
-                    placeholder="ENGM"
+                                            placeholder="ENTC"
                     value={formData.airport}
                     onChange={(e) => handleInputChange('airport', e.target.value)}
                     style={getInputStyle('airport')}
@@ -1537,6 +3076,38 @@ function App() {
           </div>
         )}
 
+            {currentAirportView.type === 'info' && (
+              <div>
+                <h2 style={styles.cardTitle}>INFO for {currentAirportView.airport.name}</h2>
+                <p>INFO content coming soon...</p>
+              </div>
+            )}
+
+            {currentAirportView.type === 'runways' && (
+              <div>
+                <h2 style={styles.cardTitle}>RUNWAYS for {currentAirportView.airport.name}</h2>
+                <p>RUNWAYS content coming soon...</p>
+              </div>
+            )}
+
+            {currentAirportView.type === 'geo' && (
+              <div>
+                <h2 style={styles.cardTitle}>GEO for {currentAirportView.airport.name}</h2>
+                <p>GEO content coming soon...</p>
+              </div>
+            )}
+
+            {currentAirportView.type === 'mrva' && (
+              <div>
+                <h2 style={styles.cardTitle}>MRVA for {currentAirportView.airport.name}</h2>
+                <p>MRVA content coming soon...</p>
+              </div>
+            )}
+          </div>
+        )}
+
+
+
         {currentView === 'settings' && (
           <div style={styles.settingsContainer}>
             <h2 style={styles.settingsTitle}>Settings</h2>
@@ -1597,6 +3168,18 @@ function App() {
                               &nbsp;&nbsp;&nbsp;&nbsp;Created {new Date(airport.createdAt).toLocaleDateString()}
                             </span>
                           </div>
+                          <div style={{display: 'flex', gap: '8px'}}>
+                            <button
+                              onClick={() => handleRenameAirport(airport)}
+                              style={{
+                                ...styles.deleteButton,
+                                backgroundColor: '#3b82f6',
+                                color: 'white'
+                              }}
+                            >
+                              <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                              Rename
+                            </button>
                           <button
                             onClick={() => handleDeleteAirport(airport.id)}
                             style={styles.deleteButton}
@@ -1604,6 +3187,7 @@ function App() {
                             <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
                             Delete
                           </button>
+                          </div>
                         </div>
                       ))
                   )}
@@ -1619,10 +3203,372 @@ function App() {
             {/* Manage Configs Page */}
             {settingsPage === 'configs' && (
               <div>
-                <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Configurations</h3>
-                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>Configuration management coming soon...</p>
+                <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Configs</h3>
+                
+                {/* Airport Selection */}
+                <div style={{marginBottom: '24px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontFamily: 'Inter, sans-serif', color: '#374151', fontSize: '14px', fontWeight: '500'}}>
+                    Select Airport
+                  </label>
+                  <div style={{position: 'relative', maxWidth: '300px'}}>
+                    <div
+                      style={{
+                        ...styles.settingsSearchInput,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                      onClick={() => setShowAirportDropdownForManageConfigs(!showAirportDropdownForManageConfigs)}
+                    >
+                      <span style={{color: selectedAirportForManageConfigs ? '#0B1E39' : '#9ca3af'}}>
+                        {selectedAirportForManageConfigs || 'Select an airport...'}
+                      </span>
+                      <span className="material-icons" style={{fontSize: '20px', color: '#6b7280'}}>
+                        {showAirportDropdownForManageConfigs ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                      </span>
+              </div>
+                    
+                    {/* Airport Dropdown */}
+                    {showAirportDropdownForManageConfigs && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        zIndex: 1000,
+                        maxHeight: '200px',
+                        overflow: 'auto',
+                        overflowX: 'hidden'
+                      }}>
+                        {/* Search Input */}
+                        <div style={{padding: '8px', borderBottom: '1px solid #e5e7eb'}}>
+                          <input
+                            type="text"
+                            placeholder="Search airports..."
+                            value={airportSearchForManageConfigs}
+                            onChange={(e) => setAirportSearchForManageConfigs(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontFamily: 'Inter, sans-serif',
+                              boxSizing: 'border-box'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        
+                        {/* Airport List */}
+                        {airports.length === 0 ? (
+                          <div style={{padding: '12px', color: '#6b7280', fontFamily: 'Inter, sans-serif', fontSize: '14px'}}>
+                            No airports available
+                          </div>
+                        ) : (
+                          airports
+                            .filter(airport => 
+                              airport.name.toLowerCase().includes(airportSearchForManageConfigs.toLowerCase())
+                            )
+                            .map((airport) => (
+                              <div
+                                key={airport.id}
+                                style={{
+                                  padding: '12px',
+                                  cursor: 'pointer',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontSize: '14px',
+                                  color: '#0B1E39',
+                                  borderBottom: '1px solid #f3f4f6',
+                                  backgroundColor: selectedAirportForManageConfigs === airport.name ? '#f3f4f6' : 'white',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}
+                                onClick={() => {
+                                  setSelectedAirportForManageConfigs(airport.name);
+                                  setShowAirportDropdownForManageConfigs(false);
+                                  setAirportSearchForManageConfigs('');
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (selectedAirportForManageConfigs !== airport.name) {
+                                    e.target.style.backgroundColor = '#f9fafb';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (selectedAirportForManageConfigs !== airport.name) {
+                                    e.target.style.backgroundColor = 'white';
+                                  }
+                                }}
+                              >
+                                {airport.name}
+                              </div>
+                            ))
+                        )}
+                        {airports.length > 0 && airports.filter(airport => 
+                          airport.name.toLowerCase().includes(airportSearchForManageConfigs.toLowerCase())
+                        ).length === 0 && (
+                          <div style={{padding: '12px', color: '#6b7280', fontFamily: 'Inter, sans-serif', fontSize: '14px'}}>
+                            No airports found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Configs List */}
+                {selectedAirportForManageConfigs ? (
+                  <div>
+                    <div style={styles.settingsSearchContainer}>
+                      <span className="material-icons" style={styles.settingsSearchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search configs..."
+                        value={configSearchTerm}
+                        onChange={(e) => setConfigSearchTerm(e.target.value)}
+                        style={styles.settingsSearchInput}
+                      />
+                    </div>
+                    <div>
+                      {(() => {
+                        const airportConfigs = configs.filter(config => 
+                          config.airport === selectedAirportForManageConfigs || config.type === 'default'
+                        );
+                        const filteredConfigs = airportConfigs.filter(config => 
+                          config.name.toLowerCase().includes(configSearchTerm.toLowerCase())
+                        );
+                        
+                        return (
+                          <>
+                            {airportConfigs.length === 0 ? (
+                              <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No configurations available for {selectedAirportForManageConfigs}.</p>
+                            ) : (
+                              filteredConfigs.map((config) => (
+                                <div key={config.id} style={styles.airportListItem}>
+                                  <div style={styles.airportListInfo}>
+                                    <span style={styles.airportListName}>{config.name}</span>
+                                    <span style={styles.airportListDate}>
+                                      &nbsp;&nbsp;&nbsp;&nbsp;{config.type === 'default' ? 'Default Configuration' : `Airport: ${config.airport}`}
+                                    </span>
+                                  </div>
+                                  <div style={{display: 'flex', gap: '8px'}}>
+                                    <button
+                                      onClick={() => handleRenameConfig(config.name)}
+                                      style={{
+                                        ...styles.deleteButton,
+                                        backgroundColor: '#3b82f6',
+                                        color: 'white'
+                                      }}
+                                    >
+                                      <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                      Rename
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteConfig(config.name)}
+                                      style={styles.deleteButton}
+                                    >
+                                      <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                            {airportConfigs.length > 0 && filteredConfigs.length === 0 && (
+                              <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No configurations found matching your search.</p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>Please select an airport to view its configurations.</p>
+                )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Rename Config Modal */}
+        {showRenameConfig && (
+          <div style={styles.nameInputOverlay}>
+            <div style={styles.nameInputModal}>
+              <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+                Rename Configuration
+              </h3>
+              <input
+                type="text"
+                placeholder="Config "
+                value={newConfigName}
+                onChange={(e) => {
+                  // For rename config, only allow editing the part after "Config "
+                  const fullValue = e.target.value;
+                  if (fullValue.startsWith('Config ')) {
+                    const afterConfig = fullValue.substring(7); // Remove "Config " (7 characters including space)
+                    const filtered = afterConfig.replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+                    setNewConfigName(`Config ${filtered}`);
+                  } else {
+                    // If user tries to delete "Config ", keep it
+                    setNewConfigName(newConfigName);
+                  }
+                }}
+                style={styles.nameInputField}
+                autoFocus
+                onKeyPress={(e) => e.key === 'Enter' && confirmRenameConfig()}
+              />
+              <div style={styles.nameInputButtons}>
+                <button
+                  onClick={cancelRenameConfig}
+                  onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonCancel,
+                    ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRenameConfig}
+                  onMouseEnter={() => setButtonHover({...buttonHover, submit: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, submit: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonSubmit,
+                    ...(buttonHover.submit ? styles.nameInputButtonSubmitHover : {})
+                  }}
+                >
+                  Rename
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Config Confirmation Modal */}
+        {showDeleteConfigConfirm && (
+          <div style={styles.nameInputOverlay}>
+            <div style={styles.nameInputModal}>
+              <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+                Delete Configuration
+              </h3>
+              <p style={{marginBottom: '24px', fontFamily: 'Inter, sans-serif', color: '#6b7280'}}>
+                Are you sure you want to delete "{configToDelete}"? This action cannot be undone.
+              </p>
+              <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+                <button
+                  onClick={cancelDeleteConfig}
+                  onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonCancel,
+                    ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteConfig}
+                  onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonSubmit,
+                    ...(buttonHover.delete ? styles.nameInputButtonSubmitHover : {})
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rename Airport Modal */}
+        {showRenameAirport && (
+          <div style={styles.nameInputOverlay}>
+            <div style={styles.nameInputModal}>
+              <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+                Rename Airport
+              </h3>
+              <input
+                type="text"
+                placeholder="Enter ICAO..."
+                value={newAirportName}
+                onChange={(e) => {
+                  // Only allow letters, convert to uppercase, max 4 characters
+                  const filteredValue = e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4);
+                  setNewAirportName(filteredValue);
+                }}
+                style={styles.nameInputField}
+                autoFocus
+                onKeyPress={(e) => e.key === 'Enter' && confirmRenameAirport()}
+              />
+              <div style={styles.nameInputButtons}>
+                <button
+                  onClick={cancelRenameAirport}
+                  onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonCancel,
+                    ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRenameAirport}
+                  onMouseEnter={() => setButtonHover({...buttonHover, submit: true})}
+                  onMouseLeave={() => setButtonHover({...buttonHover, submit: false})}
+                  style={{
+                    ...styles.nameInputButton, 
+                    ...styles.nameInputButtonSubmit,
+                    ...(buttonHover.submit ? styles.nameInputButtonSubmitHover : {})
+                  }}
+                >
+                  Rename
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notification Toast */}
+        {notification.show && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            backgroundColor: notification.type === 'success' ? '#10b981' : '#ef4444',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '14px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'slideInRight 0.3s ease-out',
+            maxWidth: '300px',
+            wordWrap: 'break-word'
+          }}>
+            <span className="material-icons" style={{ fontSize: '20px' }}>
+              {notification.type === 'success' ? 'check_circle' : 'error'}
+            </span>
+            {notification.message}
           </div>
         )}
       </div>
