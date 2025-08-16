@@ -13,6 +13,11 @@ function App() {
   const [nameInputValue, setNameInputValue] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [modalAnimating, setModalAnimating] = useState(false);
+  const [selectedAirport, setSelectedAirport] = useState('');
+  const [settingsSearchTerm, setSettingsSearchTerm] = useState('');
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [airportToDelete, setAirportToDelete] = useState(null);
+  const [showAirportsDropdown, setShowAirportsDropdown] = useState(false);
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -219,6 +224,27 @@ function App() {
     }, 150);
   };
 
+  const handleNameInputChange = (value) => {
+    // Only allow letters, convert to uppercase, max 4 characters
+    const filteredValue = value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4);
+    setNameInputValue(filteredValue);
+  };
+
+  const handleClickOutside = (event) => {
+    // Close dropdown if clicking outside
+    if (showAirportsDropdown && !event.target.closest('[data-dropdown]')) {
+      setShowAirportsDropdown(false);
+    }
+  };
+
+  // Add click outside listener
+  useEffect(() => {
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showAirportsDropdown]);
+
   // Test function to verify button animation works
   // const testButtonAnimation = (type) => { // Removed
   //   setButtonAnimating(type); // Removed
@@ -239,10 +265,11 @@ function App() {
         setShowNameInput(false);
         setNameInputValue('');
         
-        // Animate to your-airports view
+        // Animate to your-airports view and select the new airport
         setIsTransitioning(true);
         setTimeout(() => {
           setCurrentView('your-airports');
+          setSelectedAirport(newAirport.id);
           setIsTransitioning(false);
         }, 150);
       } else if (nameInputType === 'new-config') {
@@ -257,6 +284,28 @@ function App() {
   const handleNameCancel = () => {
     setShowNameInput(false);
     setNameInputValue('');
+  };
+
+  const handleDeleteAirport = (airportId) => {
+    const airport = airports.find(a => a.id === airportId);
+    setAirportToDelete(airport);
+    setShowConfirmDelete(true);
+  };
+
+  const confirmDeleteAirport = () => {
+    if (airportToDelete) {
+      setAirports(prev => prev.filter(airport => airport.id !== airportToDelete.id));
+      if (selectedAirport === airportToDelete.id) {
+        setSelectedAirport('');
+      }
+      setShowConfirmDelete(false);
+      setAirportToDelete(null);
+    }
+  };
+
+  const cancelDeleteAirport = () => {
+    setShowConfirmDelete(false);
+    setAirportToDelete(null);
   };
 
   const handleSort = (field) => {
@@ -570,6 +619,8 @@ function App() {
       borderBottom: '1px solid #e5e7eb',
       padding: '12px 0',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      position: 'relative',
+      zIndex: 100,
     },
     navigationContainer: {
       padding: '0 24px',
@@ -695,6 +746,29 @@ function App() {
       fontSize: '14px',
       color: '#6b7280',
     },
+    airportDropdown: {
+      width: '100%',
+      padding: '12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '16px',
+      fontFamily: 'Inter, sans-serif',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      marginBottom: '16px',
+    },
+    airportDropdownOption: {
+      padding: '8px 12px',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+    },
+    airportDropdownLabel: {
+      fontSize: '16px',
+      fontWeight: '500',
+      color: '#0B1E39',
+      marginBottom: '8px',
+      fontFamily: 'Inter, sans-serif',
+    },
     welcomeContainer: {
       textAlign: 'center',
       padding: '48px 20px',
@@ -727,6 +801,108 @@ function App() {
     contentContainerTransitioning: {
       opacity: 0,
       transform: 'translateY(10px)',
+    },
+    settingsContainer: {
+      padding: '24px',
+      flex: '1',
+      overflowY: 'auto',
+    },
+    settingsTitle: {
+      fontSize: 'clamp(20px, 3vw, 24px)',
+      fontWeight: '600',
+      marginBottom: '24px',
+      color: '#0B1E39',
+      fontFamily: 'Inter, sans-serif',
+    },
+    airportListItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 16px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      marginBottom: '8px',
+      backgroundColor: '#f9fafb',
+    },
+    airportListInfo: {
+      flex: '1',
+    },
+    airportListName: {
+      fontSize: '16px',
+      fontWeight: '500',
+      color: '#0B1E39',
+      marginBottom: '4px',
+      fontFamily: 'Inter, sans-serif',
+    },
+    airportListDate: {
+      fontSize: '14px',
+      color: '#6b7280',
+      fontFamily: 'Inter, sans-serif',
+    },
+    settingsSearchContainer: {
+      position: 'relative',
+      marginBottom: '24px',
+      width: '100%',
+    },
+    settingsSearchInput: {
+      width: '100%',
+      padding: '12px 12px 12px 48px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      boxSizing: 'border-box',
+    },
+    settingsSearchIcon: {
+      position: 'absolute',
+      left: '16px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      color: '#9ca3af',
+      fontSize: '20px',
+      pointerEvents: 'none',
+    },
+    navDropdownContainer: {
+      position: 'absolute',
+      top: '100%',
+      left: '19.9%',
+      transform: 'translateX(-50%)',
+      zIndex: 9999,
+      display: 'block',
+    },
+    navDropdown: {
+      backgroundColor: 'white',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+      minWidth: '200px',
+      maxHeight: '300px',
+      overflowY: 'auto',
+      marginTop: '4px',
+      position: 'relative',
+      zIndex: 9999,
+    },
+    navDropdownItem: {
+      padding: '12px 16px',
+      borderBottom: '1px solid #f3f4f6',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      transition: 'background-color 0.15s ease-out',
+    },
+    navDropdownItemHover: {
+      backgroundColor: '#f9fafb',
+    },
+    navDropdownItemSelected: {
+      backgroundColor: '#f3f4f6',
+      color: '#0B1E39',
+    },
+    navDropdownEmpty: {
+      padding: '12px 16px',
+      color: '#6b7280',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      fontStyle: 'italic',
     },
   };
 
@@ -771,7 +947,7 @@ function App() {
             onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
             onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
           >
-            New
+            New Airport
           </button>
           <button
             style={{
@@ -789,14 +965,53 @@ function App() {
             style={{
               ...styles.navButton,
               ...(currentView === 'your-airports' ? styles.navButtonActive : {}),
+              position: 'relative',
               // ...(buttonAnimating === 'your-airports' ? styles.navButtonAnimating : {}), // Removed
             }}
-            onClick={() => handleNavigation('your-airports')}
+            onClick={() => setShowAirportsDropdown(!showAirportsDropdown)}
             onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
             onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+            data-dropdown
           >
             Your Airports
           </button>
+          {showAirportsDropdown && (
+            <div style={styles.navDropdownContainer} data-dropdown>
+              <div style={styles.navDropdown}>
+                {airports.length === 0 ? (
+                  <div style={styles.navDropdownEmpty}>
+                    No airports created yet
+                  </div>
+                ) : (
+                  airports.map((airport) => (
+                    <div
+                      key={airport.id}
+                      style={{
+                        ...styles.navDropdownItem,
+                        ...(selectedAirport === airport.id ? styles.navDropdownItemSelected : {}),
+                      }}
+                      onClick={() => {
+                        setSelectedAirport(airport.id);
+                        setShowAirportsDropdown(false);
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedAirport !== airport.id) {
+                          e.target.style.backgroundColor = styles.navDropdownItemHover.backgroundColor;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedAirport !== airport.id) {
+                          e.target.style.backgroundColor = '';
+                        }
+                      }}
+                    >
+                      {airport.name}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
           <button
             style={{
               ...styles.navButton,
@@ -808,6 +1023,17 @@ function App() {
             onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
           >
             Traffic
+          </button>
+          <button
+            style={{
+              ...styles.navButton,
+              ...(currentView === 'settings' ? styles.navButtonActive : {}),
+            }}
+            onClick={() => handleNavigation('settings')}
+            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
+            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+          >
+            Settings
           </button>
           {/* Test buttons for animation */}
           {/* <button // Removed
@@ -845,9 +1071,9 @@ function App() {
           }}>
             <input
               type="text"
-              placeholder="Enter name..."
+              placeholder="Enter ICAO..."
               value={nameInputValue}
-              onChange={(e) => setNameInputValue(e.target.value)}
+              onChange={(e) => handleNameInputChange(e.target.value)}
               style={styles.nameInputField}
               autoFocus
               onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
@@ -870,6 +1096,42 @@ function App() {
         </div>
       )}
 
+      {/* Confirm Delete Modal */}
+      {showConfirmDelete && (
+        <div style={{
+          ...styles.nameInputOverlay,
+          opacity: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        }}>
+          <div style={{
+            ...styles.nameInputModal,
+            backgroundColor: 'white',
+            minWidth: '350px',
+            padding: '30px',
+            textAlign: 'center',
+          }}>
+            <h2 style={styles.nameInputTitle}>Confirm Deletion</h2>
+            <p style={{color: '#374151', marginBottom: '24px', fontFamily: 'Inter, sans-serif'}}>
+              Are you sure you want to delete the airport "{airportToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div style={{display: 'flex', justifyContent: 'space-around', gap: '12px'}}>
+              <button
+                onClick={confirmDeleteAirport}
+                style={{...styles.nameInputButton, backgroundColor: '#dc2626', color: 'white'}}
+              >
+                Delete
+              </button>
+              <button
+                onClick={cancelDeleteAirport}
+                style={{...styles.nameInputButton, backgroundColor: '#f3f4f6', color: '#374151'}}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content based on current view */}
       <div style={{
         ...styles.contentContainer,
@@ -878,29 +1140,8 @@ function App() {
         {currentView === 'welcome' && (
           <div style={styles.welcomeContainer}>
             <h2 style={styles.welcomeTitle}>Welcome to VoiceATC Airport Creator</h2>
-            <p style={styles.welcomeSubtitle}>Click New to create your first airport!</p>
+            <p style={styles.welcomeSubtitle}>Navigate to Your Airports to begin!</p>
           </div>
-        )}
-
-        {currentView === 'your-airports' && (
-          airports.length === 0 ? (
-            <div style={styles.welcomeContainer}>
-              <h2 style={styles.welcomeTitle}>Your Airports</h2>
-              <p style={styles.welcomeSubtitle}>Click New to create your first airport!</p>
-            </div>
-          ) : (
-            <div style={styles.airportsList}>
-              <h2 style={styles.airportsListTitle}>Your Airports</h2>
-              {airports.map((airport) => (
-                <div key={airport.id} style={styles.airportItem}>
-                  <span style={styles.airportName}>{airport.name}</span>
-                  <span style={styles.airportDate}>
-                    {new Date(airport.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )
         )}
 
         {currentView === 'traffic' && (
@@ -1225,6 +1466,55 @@ function App() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {currentView === 'settings' && (
+          <div style={styles.settingsContainer}>
+            <h2 style={styles.settingsTitle}>Settings</h2>
+            <div style={styles.settingsSearchContainer}>
+              <span className="material-icons" style={styles.settingsSearchIcon}>search</span>
+              <input
+                type="text"
+                placeholder="Search airports..."
+                value={settingsSearchTerm}
+                onChange={(e) => setSettingsSearchTerm(e.target.value)}
+                style={styles.settingsSearchInput}
+              />
+            </div>
+            <div>
+              <h3 style={{...styles.airportDropdownLabel, marginBottom: '16px'}}>Manage Airports</h3>
+              {airports.length === 0 ? (
+                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports created yet.</p>
+              ) : (
+                airports
+                  .filter(airport => 
+                    airport.name.toLowerCase().includes(settingsSearchTerm.toLowerCase())
+                  )
+                  .map((airport) => (
+                    <div key={airport.id} style={styles.airportListItem}>
+                      <div style={styles.airportListInfo}>
+                        <span style={styles.airportListName}>{airport.name}</span>
+                        <span style={styles.airportListDate}>
+                          Created {new Date(airport.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAirport(airport.id)}
+                        style={styles.deleteButton}
+                      >
+                        <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                        Delete
+                      </button>
+                    </div>
+                  ))
+              )}
+              {airports.length > 0 && airports.filter(airport => 
+                airport.name.toLowerCase().includes(settingsSearchTerm.toLowerCase())
+              ).length === 0 && (
+                <p style={{color: '#6b7280', fontFamily: 'Inter, sans-serif'}}>No airports found matching your search.</p>
+              )}
             </div>
           </div>
         )}
