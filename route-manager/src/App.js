@@ -6,8 +6,16 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('airlines');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [currentView, setCurrentView] = useState('welcome');
+  const [airports, setAirports] = useState([]);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [nameInputType, setNameInputType] = useState('');
+  const [nameInputValue, setNameInputValue] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [modalAnimating, setModalAnimating] = useState(false);
   const [formData, setFormData] = useState({
     airlines: '',
+    airport: '',
     popularity: '',
     route: '',
     acft: '',
@@ -25,10 +33,23 @@ function App() {
     }
   }, []);
 
+  // Load airports from localStorage on component mount
+  useEffect(() => {
+    const savedAirports = localStorage.getItem('airports');
+    if (savedAirports) {
+      setAirports(JSON.parse(savedAirports));
+    }
+  }, []);
+
   // Save routes to localStorage whenever routes change
   useEffect(() => {
     localStorage.setItem('flight-routes', JSON.stringify(routes));
   }, [routes]);
+
+  // Save airports to localStorage whenever airports change
+  useEffect(() => {
+    localStorage.setItem('airports', JSON.stringify(airports));
+  }, [airports]);
 
   // Validation functions
   const validateAirlines = (value) => {
@@ -51,6 +72,10 @@ function App() {
       case 'airlines':
         // Only allow letters and spaces, convert to uppercase
         filteredValue = value.replace(/[^A-Za-z\s]/g, '').toUpperCase();
+        break;
+      case 'airport':
+        // Only allow letters and numbers, convert to uppercase
+        filteredValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
         break;
       case 'popularity':
         // Only allow numbers and decimal points
@@ -90,7 +115,7 @@ function App() {
 
   const handleAddRoute = () => {
     // Check if all required fields are filled
-    const requiredFields = ['airlines', 'popularity', 'route', 'acft', 'wake', 'flBottom', 'flTop'];
+    const requiredFields = ['airlines', 'airport', 'popularity', 'route', 'acft', 'wake', 'flBottom', 'flTop'];
     const emptyFields = requiredFields.filter(field => !formData[field]);
     
     if (emptyFields.length > 0) {
@@ -127,6 +152,7 @@ function App() {
     const newRoute = {
       id: Math.random().toString(36).substr(2, 9),
       airlines: formData.airlines,
+      airport: formData.airport,
       popularity: parseFloat(formData.popularity) || 0,
       route: formData.route,
       acft: formData.acft,
@@ -140,6 +166,7 @@ function App() {
     
     setFormData({
       airlines: '',
+      airport: '',
       popularity: '',
       route: '',
       acft: '',
@@ -154,6 +181,82 @@ function App() {
 
   const handleDeleteRoute = (id) => {
     setRoutes(prev => prev.filter(route => route.id !== id));
+  };
+
+  const handleNavigation = (view) => {
+    if (currentView === view) return;
+    
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView(view);
+      setShowNameInput(false);
+      setNameInputValue('');
+      setIsTransitioning(false);
+    }, 100); // Shorter delay for better feel
+  };
+
+  const handleLogoClick = () => {
+    if (currentView === 'welcome') return;
+    
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView('welcome');
+      setShowNameInput(false);
+      setNameInputValue('');
+      setIsTransitioning(false);
+    }, 150);
+  };
+
+  const handleNameInput = (type) => {
+    setNameInputType(type);
+    setShowNameInput(true);
+    setNameInputValue('');
+    setModalAnimating(true);
+    
+    // Reset animation state after animation completes
+    setTimeout(() => {
+      setModalAnimating(false);
+    }, 150);
+  };
+
+  // Test function to verify button animation works
+  // const testButtonAnimation = (type) => { // Removed
+  //   setButtonAnimating(type); // Removed
+  //   setTimeout(() => { // Removed
+  //     setButtonAnimating(''); // Removed
+  //   }, 200); // Removed
+  // }; // Removed
+
+  const handleNameSubmit = () => {
+    if (nameInputValue.trim()) {
+      if (nameInputType === 'new') {
+        const newAirport = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: nameInputValue.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        setAirports(prev => [...prev, newAirport]);
+        setShowNameInput(false);
+        setNameInputValue('');
+        
+        // Animate to your-airports view
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setCurrentView('your-airports');
+          setIsTransitioning(false);
+        }, 150);
+      } else if (nameInputType === 'new-config') {
+        // Handle new config creation here
+        console.log('New config created:', nameInputValue.trim());
+      }
+      setShowNameInput(false);
+      setNameInputValue('');
+    }
+  };
+
+  const handleNameCancel = () => {
+    setShowNameInput(false);
+    setNameInputValue('');
   };
 
   const handleSort = (field) => {
@@ -196,6 +299,7 @@ function App() {
 
   const filteredRoutes = getSortedRoutes(routes.filter(route =>
     route.airlines.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    route.airport.toLowerCase().includes(searchTerm.toLowerCase()) ||
     route.route.toLowerCase().includes(searchTerm.toLowerCase()) ||
     route.acft.toLowerCase().includes(searchTerm.toLowerCase())
   ));
@@ -251,29 +355,38 @@ function App() {
 
   const styles = {
     container: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '16px',
+      width: '100vw',
+      height: '100vh',
+      margin: '0',
+      padding: '0',
       backgroundColor: '#f8fafc',
-      minHeight: '100vh',
       fontFamily: 'Inter, sans-serif',
       boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
     },
     header: {
-      textAlign: 'center',
-      marginBottom: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '16px 24px',
+      backgroundColor: 'white',
+      borderBottom: '1px solid #e5e7eb',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
     },
     logo: {
-      width: '64px',
-      height: '64px',
-      margin: '0 auto 16px',
+      width: '48px',
+      height: '48px',
+      margin: '0 16px 0 0',
       display: 'block',
+      cursor: 'pointer',
+      transition: 'transform 0.2s ease-in-out',
+      flexShrink: 0,
     },
     title: {
-      fontSize: 'clamp(24px, 4vw, 36px)',
+      fontSize: 'clamp(20px, 3vw, 28px)',
       fontWeight: '700',
       color: '#0B1E39',
-      marginBottom: '8px',
+      margin: '0',
       fontFamily: 'Inter, sans-serif',
     },
     subtitle: {
@@ -452,12 +565,190 @@ function App() {
     sortIconActive: {
       color: '#0B1E39',
     },
+    navigationBar: {
+      backgroundColor: 'white',
+      borderBottom: '1px solid #e5e7eb',
+      padding: '12px 0',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    },
+    navigationContainer: {
+      padding: '0 24px',
+      display: 'flex',
+      gap: '16px',
+      alignItems: 'center',
+    },
+    navButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      fontFamily: 'Inter, sans-serif',
+      transition: 'all 0.2s ease-out',
+      backgroundColor: 'transparent',
+      color: '#6b7280',
+    },
+    navButtonActive: {
+      backgroundColor: '#0B1E39',
+      color: 'white',
+    },
+    navButtonHover: {
+      backgroundColor: '#f3f4f6',
+      color: '#0B1E39',
+    },
+    nameInputOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      opacity: 1,
+      transition: 'opacity 0.15s ease-out',
+    },
+    nameInputModal: {
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '24px',
+      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      minWidth: '300px',
+      transform: 'scale(1)',
+      transition: 'transform 0.15s ease-out',
+    },
+    nameInputTitle: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '16px',
+      color: '#0B1E39',
+      fontFamily: 'Inter, sans-serif',
+    },
+    nameInputField: {
+      width: '100%',
+      padding: '12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      marginBottom: '16px',
+      boxSizing: 'border-box',
+    },
+    nameInputButtons: {
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'flex-end',
+    },
+    nameInputButton: {
+      padding: '8px 16px',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      fontFamily: 'Inter, sans-serif',
+    },
+    nameInputButtonCancel: {
+      backgroundColor: '#f3f4f6',
+      color: '#374151',
+    },
+    nameInputButtonSubmit: {
+      backgroundColor: '#0B1E39',
+      color: 'white',
+    },
+    airportsList: {
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+      padding: '20px',
+      margin: '24px',
+      flex: '1',
+      overflow: 'auto',
+    },
+    airportsListTitle: {
+      fontSize: 'clamp(18px, 3vw, 24px)',
+      fontWeight: '600',
+      marginBottom: '16px',
+      color: '#0B1E39',
+      fontFamily: 'Inter, sans-serif',
+    },
+    airportItem: {
+      padding: '12px 16px',
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      marginBottom: '8px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      fontFamily: 'Inter, sans-serif',
+    },
+    airportName: {
+      fontSize: '16px',
+      fontWeight: '500',
+      color: '#0B1E39',
+    },
+    airportDate: {
+      fontSize: '14px',
+      color: '#6b7280',
+    },
+    welcomeContainer: {
+      textAlign: 'center',
+      padding: '48px 20px',
+      maxWidth: '600px',
+      margin: '0 auto',
+      flex: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+    },
+    welcomeTitle: {
+      fontSize: 'clamp(28px, 5vw, 42px)',
+      fontWeight: '700',
+      color: '#0B1E39',
+      marginBottom: '24px',
+      fontFamily: 'Inter, sans-serif',
+    },
+    welcomeSubtitle: {
+      fontSize: 'clamp(18px, 3vw, 24px)',
+      color: '#6b7280',
+      fontFamily: 'Inter, sans-serif',
+      lineHeight: '1.5',
+    },
+    contentContainer: {
+      flex: '1',
+      opacity: 1,
+      transform: 'translateY(0)',
+      transition: 'opacity 0.1s ease-out, transform 0.1s ease-out',
+    },
+    contentContainerTransitioning: {
+      opacity: 0,
+      transform: 'translateY(10px)',
+    },
   };
 
   return (
     <div style={styles.container}>
+      {/* Header - Always visible */}
       <div style={styles.header}>
-        <svg style={styles.logo} xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Route icon">
+        <svg 
+          style={{
+            ...styles.logo,
+            transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
+          }} 
+          xmlns="http://www.w3.org/2000/svg" 
+          width="64" 
+          height="64" 
+          viewBox="0 0 64 64" 
+          role="img" 
+          aria-label="Route icon" 
+          onClick={handleLogoClick}
+          onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+          onMouseLeave={(e) => e.target.style.transform = isTransitioning ? 'scale(0.95)' : 'scale(1)'}
+        >
           <rect x="2" y="2" width="60" height="60" rx="14" fill="#0B1E39"/>
           <path d="M14 46 L28 32 L40 38 L50 18" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
           <circle cx="14" cy="46" r="4" fill="#0B1E39" stroke="#FFFFFF" strokeWidth="4"/>
@@ -465,297 +756,478 @@ function App() {
           <circle cx="50" cy="18" r="4" fill="#0B1E39" stroke="#FFFFFF" strokeWidth="4"/>
         </svg>
         <h1 style={styles.title}>VoiceATC Airport Creator</h1>
-        <p style={styles.subtitle}>Manage and organize your flight routes</p>
       </div>
 
-      {/* Input Section */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Add New Route</h2>
-        <div style={styles.grid}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Airlines</label>
-            <input
-              type="text"
-              placeholder="SAS, NOZ"
-              value={formData.airlines}
-              onChange={(e) => handleInputChange('airlines', e.target.value)}
-              style={getInputStyle('airlines')}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Popularity</label>
-            <input
-              type="text"
-              placeholder="0-100"
-              value={formData.popularity}
-              onChange={(e) => handleInputChange('popularity', e.target.value)}
-              style={getInputStyle('popularity')}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Route</label>
-            <input
-              type="text"
-              placeholder="BABAP T316 VSB"
-              value={formData.route}
-              onChange={(e) => handleInputChange('route', e.target.value)}
-              style={getInputStyle('route')}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Aircraft</label>
-            <input
-              type="text"
-              placeholder="e.g., A320, B738"
-              value={formData.acft}
-              onChange={(e) => handleInputChange('acft', e.target.value)}
-              style={getInputStyle('acft')}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Wake Category</label>
-            <select
-              value={formData.wake}
-              onChange={(e) => handleInputChange('wake', e.target.value)}
-              style={getSelectStyle('wake')}
-            >
-              <option value="L">L</option>
-              <option value="M">M</option>
-              <option value="H">H</option>
-              <option value="J">J</option>
-            </select>
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>FL Bottom</label>
-            <input
-              type="text"
-              placeholder="e.g., 100"
-              value={formData.flBottom}
-              onChange={(e) => handleInputChange('flBottom', e.target.value)}
-              style={getInputStyle('flBottom')}
-            />
-          </div>
-          
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>FL Top</label>
-            <input
-              type="text"
-              placeholder="e.g., 430"
-              value={formData.flTop}
-              onChange={(e) => handleInputChange('flTop', e.target.value)}
-              style={getInputStyle('flTop')}
-            />
-          </div>
+      {/* Navigation Bar */}
+      <div style={styles.navigationBar}>
+        <div style={styles.navigationContainer}>
+          <button
+            style={{
+              ...styles.navButton,
+              ...(currentView === 'new' ? styles.navButtonActive : {}),
+              // ...(buttonAnimating === 'new' ? styles.navButtonAnimating : {}), // Removed
+            }}
+            onClick={() => handleNameInput('new')}
+            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
+            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+          >
+            New
+          </button>
+          <button
+            style={{
+              ...styles.navButton,
+              ...(currentView === 'new-config' ? styles.navButtonActive : {}),
+              // ...(buttonAnimating === 'new-config' ? styles.navButtonAnimating : {}), // Removed
+            }}
+            onClick={() => handleNameInput('new-config')}
+            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
+            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+          >
+            New Config
+          </button>
+          <button
+            style={{
+              ...styles.navButton,
+              ...(currentView === 'your-airports' ? styles.navButtonActive : {}),
+              // ...(buttonAnimating === 'your-airports' ? styles.navButtonAnimating : {}), // Removed
+            }}
+            onClick={() => handleNavigation('your-airports')}
+            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
+            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+          >
+            Your Airports
+          </button>
+          <button
+            style={{
+              ...styles.navButton,
+              ...(currentView === 'traffic' ? styles.navButtonActive : {}),
+              // ...(buttonAnimating === 'traffic' ? styles.navButtonAnimating : {}), // Removed
+            }}
+            onClick={() => handleNavigation('traffic')}
+            onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
+            onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
+          >
+            Traffic
+          </button>
+          {/* Test buttons for animation */}
+          {/* <button // Removed
+            style={{ // Removed
+              ...styles.navButton, // Removed
+              backgroundColor: '#dc2626', // Removed
+              color: 'white', // Removed
+            }} // Removed
+            onClick={() => testButtonAnimation('new')} // Removed
+          > // Removed
+            Test New // Removed
+          </button> // Removed
+          <button // Removed
+            style={{ // Removed
+              ...styles.navButton, // Removed
+              backgroundColor: '#dc2626', // Removed
+              color: 'white', // Removed
+            }} // Removed
+            onClick={() => testButtonAnimation('new-config')} // Removed
+          > // Removed
+            Test Config // Removed
+          </button> // Removed */}
         </div>
-        
-        <button onClick={handleAddRoute} style={styles.button}>
-          <span className="material-icons">add</span>
-          Add Route
-        </button>
       </div>
 
-      {/* Table Section */}
-      <div style={styles.card}>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
-          <h2 style={styles.cardTitle}>Routes</h2>
-          <div style={styles.searchContainer}>
-            <span className="material-icons" style={styles.searchIcon}>search</span>
+      {/* Name Input Modal */}
+      {showNameInput && (
+        <div style={{
+          ...styles.nameInputOverlay,
+          opacity: modalAnimating ? 0 : 1,
+        }}>
+          <div style={{
+            ...styles.nameInputModal,
+            transform: modalAnimating ? 'scale(0.8)' : 'scale(1)',
+          }}>
             <input
               type="text"
-              placeholder="Search by Airlines, Route, or Aircraft..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
+              placeholder="Enter name..."
+              value={nameInputValue}
+              onChange={(e) => setNameInputValue(e.target.value)}
+              style={styles.nameInputField}
+              autoFocus
+              onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
             />
+            <div style={styles.nameInputButtons}>
+              <button
+                onClick={handleNameCancel}
+                style={{...styles.nameInputButton, ...styles.nameInputButtonCancel}}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleNameSubmit}
+                style={{...styles.nameInputButton, ...styles.nameInputButtonSubmit}}
+              >
+                Create
+              </button>
+            </div>
           </div>
         </div>
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead style={styles.tableHeader}>
-              <tr>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('airlines')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    Airlines
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'airlines' ? styles.sortIconActive : {}),
-                        transform: sortField === 'airlines' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'airlines' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('popularity')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    Popularity
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'popularity' ? styles.sortIconActive : {}),
-                        transform: sortField === 'popularity' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'popularity' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('route')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    Route
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'route' ? styles.sortIconActive : {}),
-                        transform: sortField === 'route' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'route' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('acft')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    Aircraft
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'acft' ? styles.sortIconActive : {}),
-                        transform: sortField === 'acft' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'acft' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('wake')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    Wake
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'wake' ? styles.sortIconActive : {}),
-                        transform: sortField === 'wake' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'wake' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('flBottom')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    FL Bottom
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'flBottom' ? styles.sortIconActive : {}),
-                        transform: sortField === 'flBottom' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'flBottom' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  style={styles.tableCell}
-                  onClick={() => handleSort('flTop')}
-                  onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
-                  onMouseLeave={(e) => e.target.style.color = ''}
-                >
-                  <div style={styles.sortableHeader}>
-                    FL Top
-                    <span 
-                      className="material-icons" 
-                      style={{
-                        ...styles.sortIcon,
-                        ...(sortField === 'flTop' ? styles.sortIconActive : {}),
-                        transform: sortField === 'flTop' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
-                      }}
-                    >
-                      {sortField === 'flTop' ? 'keyboard_arrow_up' : 'unfold_more'}
-                    </span>
-                  </div>
-                </th>
-                <th style={styles.tableCell}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRoutes.map((route) => (
-                <tr key={route.id} style={styles.tableRow}>
-                  <td style={styles.tableCell}>{route.airlines}</td>
-                  <td style={styles.tableCell}>{route.popularity}</td>
-                  <td style={styles.tableCell}>{route.route}</td>
-                  <td style={styles.tableCell}>{route.acft}</td>
-                  <td style={styles.tableCell}>
-                    <span style={{...styles.badge, ...styles.badgeGray}}>
-                      {route.wake}
-                    </span>
-                  </td>
-                  <td style={styles.tableCell}>FL{route.flBottom}</td>
-                  <td style={styles.tableCell}>FL{route.flTop}</td>
-                  <td style={styles.tableCell}>
-                    <button
-                      onClick={() => handleDeleteRoute(route.id)}
-                      style={styles.deleteButton}
-                    >
-                      <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+      )}
+
+      {/* Content based on current view */}
+      <div style={{
+        ...styles.contentContainer,
+        ...(isTransitioning ? styles.contentContainerTransitioning : {}),
+      }}>
+        {currentView === 'welcome' && (
+          <div style={styles.welcomeContainer}>
+            <h2 style={styles.welcomeTitle}>Welcome to VoiceATC Airport Creator</h2>
+            <p style={styles.welcomeSubtitle}>Click New to create your first airport!</p>
+          </div>
+        )}
+
+        {currentView === 'your-airports' && (
+          airports.length === 0 ? (
+            <div style={styles.welcomeContainer}>
+              <h2 style={styles.welcomeTitle}>Your Airports</h2>
+              <p style={styles.welcomeSubtitle}>Click New to create your first airport!</p>
+            </div>
+          ) : (
+            <div style={styles.airportsList}>
+              <h2 style={styles.airportsListTitle}>Your Airports</h2>
+              {airports.map((airport) => (
+                <div key={airport.id} style={styles.airportItem}>
+                  <span style={styles.airportName}>{airport.name}</span>
+                  <span style={styles.airportDate}>
+                    {new Date(airport.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               ))}
-              {filteredRoutes.length === 0 && (
-                <tr>
-                  <td colSpan={8} style={styles.emptyState}>
-                    No routes found. Add your first route above!
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          )
+        )}
+
+        {currentView === 'traffic' && (
+          <div style={{flex: '1', overflow: 'auto', padding: '24px'}}>
+            {/* Input Section */}
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}>Add New Route</h2>
+              <div style={styles.grid}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Airport</label>
+                  <input
+                    type="text"
+                    placeholder="ENGM"
+                    value={formData.airport}
+                    onChange={(e) => handleInputChange('airport', e.target.value)}
+                    style={getInputStyle('airport')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Airlines</label>
+                  <input
+                    type="text"
+                    placeholder="SAS, NOZ"
+                    value={formData.airlines}
+                    onChange={(e) => handleInputChange('airlines', e.target.value)}
+                    style={getInputStyle('airlines')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Popularity</label>
+                  <input
+                    type="text"
+                    placeholder="0-100"
+                    value={formData.popularity}
+                    onChange={(e) => handleInputChange('popularity', e.target.value)}
+                    style={getInputStyle('popularity')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Route</label>
+                  <input
+                    type="text"
+                    placeholder="BABAP T316 VSB"
+                    value={formData.route}
+                    onChange={(e) => handleInputChange('route', e.target.value)}
+                    style={getInputStyle('route')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Aircraft</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., A320, B738"
+                    value={formData.acft}
+                    onChange={(e) => handleInputChange('acft', e.target.value)}
+                    style={getInputStyle('acft')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Wake Category</label>
+                  <select
+                    value={formData.wake}
+                    onChange={(e) => handleInputChange('wake', e.target.value)}
+                    style={getSelectStyle('wake')}
+                  >
+                    <option value="L">L</option>
+                    <option value="M">M</option>
+                    <option value="H">H</option>
+                    <option value="J">J</option>
+                  </select>
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>FL Bottom</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 100"
+                    value={formData.flBottom}
+                    onChange={(e) => handleInputChange('flBottom', e.target.value)}
+                    style={getInputStyle('flBottom')}
+                  />
+                </div>
+                
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>FL Top</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 430"
+                    value={formData.flTop}
+                    onChange={(e) => handleInputChange('flTop', e.target.value)}
+                    style={getInputStyle('flTop')}
+                  />
+                </div>
+              </div>
+              
+              <button onClick={handleAddRoute} style={styles.button}>
+                <span className="material-icons">add</span>
+                Add Route
+              </button>
+            </div>
+
+            {/* Table Section */}
+            <div style={styles.card}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                <h2 style={styles.cardTitle}>Routes</h2>
+                <div style={styles.searchContainer}>
+                  <span className="material-icons" style={styles.searchIcon}>search</span>
+                  <input
+                    type="text"
+                    placeholder="Search by Airlines, Airport, Route, or Aircraft..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={styles.searchInput}
+                  />
+                </div>
+              </div>
+              <div style={styles.tableContainer}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('airport')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Airport
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'airport' ? styles.sortIconActive : {}),
+                              transform: sortField === 'airport' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'airport' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('airlines')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Airlines
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'airlines' ? styles.sortIconActive : {}),
+                              transform: sortField === 'airlines' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'airlines' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('popularity')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Popularity
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'popularity' ? styles.sortIconActive : {}),
+                              transform: sortField === 'popularity' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'popularity' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('route')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Route
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'route' ? styles.sortIconActive : {}),
+                              transform: sortField === 'route' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'route' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('acft')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Aircraft
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'acft' ? styles.sortIconActive : {}),
+                              transform: sortField === 'acft' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'acft' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('wake')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          Wake
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'wake' ? styles.sortIconActive : {}),
+                              transform: sortField === 'wake' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'wake' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('flBottom')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          FL Bottom
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'flBottom' ? styles.sortIconActive : {}),
+                              transform: sortField === 'flBottom' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'flBottom' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        style={styles.tableCell}
+                        onClick={() => handleSort('flTop')}
+                        onMouseEnter={(e) => e.target.style.color = styles.sortableHeaderHover.color}
+                        onMouseLeave={(e) => e.target.style.color = ''}
+                      >
+                        <div style={styles.sortableHeader}>
+                          FL Top
+                          <span 
+                            className="material-icons" 
+                            style={{
+                              ...styles.sortIcon,
+                              ...(sortField === 'flTop' ? styles.sortIconActive : {}),
+                              transform: sortField === 'flTop' && sortDirection === 'desc' ? 'rotate(180deg)' : 'none'
+                            }}
+                          >
+                            {sortField === 'flTop' ? 'keyboard_arrow_up' : 'unfold_more'}
+                          </span>
+                        </div>
+                      </th>
+                      <th style={styles.tableCell}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRoutes.map((route) => (
+                      <tr key={route.id} style={styles.tableRow}>
+                        <td style={styles.tableCell}>{route.airport}</td>
+                        <td style={styles.tableCell}>{route.airlines}</td>
+                        <td style={styles.tableCell}>{route.popularity}</td>
+                        <td style={styles.tableCell}>{route.route}</td>
+                        <td style={styles.tableCell}>{route.acft}</td>
+                        <td style={styles.tableCell}>
+                          <span style={{...styles.badge, ...styles.badgeGray}}>
+                            {route.wake}
+                          </span>
+                        </td>
+                        <td style={styles.tableCell}>FL{route.flBottom}</td>
+                        <td style={styles.tableCell}>FL{route.flTop}</td>
+                        <td style={styles.tableCell}>
+                          <button
+                            onClick={() => handleDeleteRoute(route.id)}
+                            style={styles.deleteButton}
+                          >
+                            <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredRoutes.length === 0 && (
+                      <tr>
+                        <td colSpan={9} style={styles.emptyState}>
+                          No routes found. Add your first route above!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
