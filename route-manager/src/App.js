@@ -56,6 +56,8 @@ function App() {
   const [airportSearchForManageConfigs, setAirportSearchForManageConfigs] = useState('');
   const [showWakeCategoryDropdown, setShowWakeCategoryDropdown] = useState(false);
   const [showZoomTooltip, setShowZoomTooltip] = useState(false);
+  const [logoHovered, setLogoHovered] = useState(false);
+  const [infoDataSaved, setInfoDataSaved] = useState({});
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -267,6 +269,20 @@ function App() {
     }
   }, [runways]);
 
+  // Load info data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedInfoData = localStorage.getItem('infoData');
+      if (savedInfoData) {
+        const parsedInfoData = JSON.parse(savedInfoData);
+        setInfoDataSaved(parsedInfoData);
+        console.log('Loaded info data from localStorage:', parsedInfoData);
+      }
+    } catch (error) {
+      console.error('Error loading info data from localStorage:', error);
+    }
+  }, []);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -324,10 +340,12 @@ function App() {
     console.log('flight-routes:', localStorage.getItem('flight-routes'));
     console.log('runways:', localStorage.getItem('runways'));
     console.log('configs:', localStorage.getItem('configs'));
+    console.log('infoData:', localStorage.getItem('infoData'));
     console.log('Current state airports:', airports);
     console.log('Current state routes:', routes);
     console.log('Current state runways:', runways);
     console.log('Current state configs:', configs);
+    console.log('Current state infoData:', infoData);
     console.log('========================');
   };
 
@@ -375,10 +393,21 @@ function App() {
     localStorage.removeItem('flight-routes');
     localStorage.removeItem('runways');
     localStorage.removeItem('configs');
+    localStorage.removeItem('infoData');
     setAirports([]);
     setRoutes([]);
     setRunways([]);
     setConfigs([]);
+    setInfoData({
+      centerpoint: '',
+      magneticVariation: '',
+      elevation: '',
+      name: '',
+      defaultZoom: '',
+      backgroundColour: '',
+      transitionAltitude: '',
+    });
+    setInfoDataSaved({});
     showNotification('All data cleared!', 'success');
   };
 
@@ -432,7 +461,100 @@ function App() {
   };
 
   const handleInfoDataChange = (field, value) => {
-    setInfoData(prev => ({ ...prev, [field]: value }));
+    let filteredValue = value;
+    
+    // Apply validation based on field type
+    switch (field) {
+      case 'centerpoint':
+        // Only allow numbers, dots, and commas
+        filteredValue = value.replace(/[^0-9.,]/g, '');
+        break;
+        
+            case 'magneticVariation':
+        // No validation - allow any input
+        filteredValue = value;
+        break;
+        
+      case 'elevation':
+        // Only allow numbers up to 4411
+        filteredValue = value.replace(/[^0-9]/g, '');
+        if (filteredValue && parseInt(filteredValue) > 4411) {
+          filteredValue = '4411';
+        }
+        break;
+        
+      case 'name':
+        // Only allow letters and spaces
+        filteredValue = value.replace(/[^A-Za-z\s]/g, '');
+        break;
+        
+      case 'defaultZoom':
+        // Only allow numbers
+        filteredValue = value.replace(/[^0-9]/g, '');
+        break;
+        
+      case 'transitionAltitude':
+        // Only allow numbers
+        filteredValue = value.replace(/[^0-9]/g, '');
+        break;
+        
+      case 'backgroundColour':
+        // Must start with # and allow hex characters
+        if (!value.startsWith('#')) {
+          filteredValue = '#' + value.replace(/[^0-9A-Fa-f]/g, '');
+        } else {
+          filteredValue = value.replace(/[^#0-9A-Fa-f]/g, '');
+        }
+        // Limit to 7 characters (# + 6 hex digits)
+        filteredValue = filteredValue.slice(0, 7);
+        break;
+        
+      default:
+        // For other fields, allow any input
+        break;
+    }
+    
+    setInfoData(prev => ({ ...prev, [field]: filteredValue }));
+  };
+
+  // Load info data when entering INFO view
+  useEffect(() => {
+    if (currentAirportView && currentAirportView.type === 'info') {
+      try {
+        const savedInfoData = localStorage.getItem('infoData');
+        if (savedInfoData) {
+          const parsedInfoData = JSON.parse(savedInfoData);
+          setInfoData(parsedInfoData);
+          console.log('Loaded saved info data:', parsedInfoData);
+        } else {
+          // Reset to empty if no saved data
+          setInfoData({
+            centerpoint: '',
+            magneticVariation: '',
+            elevation: '',
+            name: '',
+            defaultZoom: '',
+            backgroundColour: '',
+            transitionAltitude: '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading info data:', error);
+      }
+    }
+  }, [currentAirportView]);
+
+  const handleSaveInfoData = () => {
+    try {
+      // Save to localStorage
+      localStorage.setItem('infoData', JSON.stringify(infoData));
+      setInfoDataSaved(infoData);
+      showNotification('INFO data saved successfully!', 'success');
+      console.log('Saved info data to localStorage:', infoData);
+    } catch (error) {
+      console.error('Error saving info data to localStorage:', error);
+      showNotification('Error saving INFO data!', 'error');
+    }
   };
 
   const handleRunwaysDataChange = (field, value) => {
@@ -578,7 +700,8 @@ function App() {
   };
 
   const handleLogoClick = () => {
-    if (currentView === 'welcome') return;
+    // Check if we're in welcome view and no airport view is active
+    if (currentView === 'welcome' && !currentAirportView) return;
     
     // Close all dropdowns and objects
     setShowAirportsDropdown(false);
@@ -602,6 +725,9 @@ function App() {
     setSelectedAirportForManageConfigs('');
     setShowAirportDropdownForManageConfigs(false);
     setAirportSearchForManageConfigs('');
+    setShowWakeCategoryDropdown(false);
+    setShowZoomTooltip(false);
+    setLogoHovered(false);
     
     setIsTransitioning(true);
     setTimeout(() => {
@@ -1662,7 +1788,8 @@ function App() {
         <svg 
           style={{
             ...styles.logo,
-            transform: isTransitioning ? 'scale(0.95)' : 'scale(1)',
+            transform: isTransitioning ? 'scale(0.95)' : logoHovered ? 'scale(1.05)' : 'scale(1)',
+            transition: 'transform 0.2s ease-in-out',
           }} 
           xmlns="http://www.w3.org/2000/svg" 
           width="64" 
@@ -1671,8 +1798,8 @@ function App() {
           role="img" 
           aria-label="Route icon" 
           onClick={handleLogoClick}
-          onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-          onMouseLeave={(e) => e.target.style.transform = isTransitioning ? 'scale(0.95)' : 'scale(1)'}
+          onMouseEnter={() => setLogoHovered(true)}
+          onMouseLeave={() => setLogoHovered(false)}
         >
           <rect x="2" y="2" width="60" height="60" rx="14" fill="#0B1E39"/>
           <path d="M14 46 L28 32 L40 38 L50 18" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1721,6 +1848,7 @@ function App() {
               setShowAirportsDropdown(!showAirportsDropdown);
               if (showAirportsDropdown) {
                 setShowSubDropdown(null);
+                setClickedAirport(null);
               }
             }}
             onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
@@ -3519,7 +3647,7 @@ function App() {
                     </div>
                     
                     <div style={styles.inputGroup}>
-                      <label style={styles.label}>ELEVATION</label>
+                      <label style={styles.label}>ELEVATION (M)</label>
                       <input
                         type="text"
                         placeholder="e.g., 42"
@@ -3612,7 +3740,6 @@ function App() {
                       <label style={styles.label}>BACKGROUND COLOUR</label>
                       <input
                         type="text"
-                        placeholder="e.g., #000000"
                         value={infoData.backgroundColour}
                         onChange={(e) => handleInfoDataChange('backgroundColour', e.target.value)}
                         style={styles.input}
@@ -3630,6 +3757,11 @@ function App() {
                       />
                     </div>
                   </div>
+                  
+                  <button onClick={handleSaveInfoData} style={styles.button}>
+                    <span className="material-icons">save</span>
+                    Save Data
+                  </button>
                 </div>
               </div>
             )}
