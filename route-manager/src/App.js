@@ -4,7 +4,7 @@ import './App.css';
 function App() {
   const [routes, setRoutes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState('airlines');
+  const [sortField, setSortField] = useState('airport');
   const [sortDirection, setSortDirection] = useState('asc');
   const [currentView, setCurrentView] = useState('welcome');
   const [airports, setAirports] = useState([]);
@@ -54,6 +54,8 @@ function App() {
   const [selectedAirportForManageConfigs, setSelectedAirportForManageConfigs] = useState('');
   const [showAirportDropdownForManageConfigs, setShowAirportDropdownForManageConfigs] = useState(false);
   const [airportSearchForManageConfigs, setAirportSearchForManageConfigs] = useState('');
+  const [showWakeCategoryDropdown, setShowWakeCategoryDropdown] = useState(false);
+  const [showZoomTooltip, setShowZoomTooltip] = useState(false);
   const [formData, setFormData] = useState({
     airlines: '',
     airport: '',
@@ -64,33 +66,160 @@ function App() {
     flBottom: '',
     flTop: '',
   });
+  
+  const [infoData, setInfoData] = useState({
+    centerpoint: '',
+    magneticVariation: '',
+    elevation: '',
+    name: '',
+    defaultZoom: '',
+    backgroundColour: '',
+    transitionAltitude: '',
+  });
+  
+  const [runwaysData, setRunwaysData] = useState({
+    rwy1: '',
+    rwy2: '',
+    elevation1: '',
+    elevation2: '',
+    track1: '',
+    track2: '',
+    coordinate1: '',
+    coordinate2: '',
+  });
+  
+  const [runways, setRunways] = useState([]);
+  const [runwaysSearchTerm, setRunwaysSearchTerm] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
 
   // Load routes from localStorage on component mount
   useEffect(() => {
-    const savedRoutes = localStorage.getItem('flight-routes');
-    if (savedRoutes) {
-      setRoutes(JSON.parse(savedRoutes));
+    try {
+      const savedRoutes = localStorage.getItem('flight-routes');
+      if (savedRoutes) {
+        const parsedRoutes = JSON.parse(savedRoutes);
+        setRoutes(parsedRoutes);
+        console.log('Loaded routes from localStorage:', parsedRoutes);
+      }
+    } catch (error) {
+      console.error('Error loading routes from localStorage:', error);
     }
   }, []);
 
   // Load airports from localStorage on component mount
   useEffect(() => {
-    const savedAirports = localStorage.getItem('airports');
-    if (savedAirports) {
-      setAirports(JSON.parse(savedAirports));
+    try {
+      console.log('=== Loading airports from localStorage ===');
+      const savedAirports = localStorage.getItem('airports');
+      console.log('Raw savedAirports:', savedAirports);
+      
+      if (savedAirports) {
+        const parsedAirports = JSON.parse(savedAirports);
+        console.log('Parsed airports:', parsedAirports);
+        setAirports(parsedAirports);
+        console.log('Set airports state to:', parsedAirports);
+      } else {
+        console.log('No saved airports found in localStorage');
+      }
+    } catch (error) {
+      console.error('Error loading airports from localStorage:', error);
     }
   }, []);
 
   // Save routes to localStorage whenever routes change
   useEffect(() => {
-    localStorage.setItem('flight-routes', JSON.stringify(routes));
+    try {
+      localStorage.setItem('flight-routes', JSON.stringify(routes));
+      console.log('Saved routes to localStorage:', routes);
+    } catch (error) {
+      console.error('Error saving routes to localStorage:', error);
+    }
   }, [routes]);
 
   // Save airports to localStorage whenever airports change
   useEffect(() => {
-    localStorage.setItem('airports', JSON.stringify(airports));
+    try {
+      localStorage.setItem('airports', JSON.stringify(airports));
+      console.log('Saved airports to localStorage:', airports);
+    } catch (error) {
+      console.error('Error saving airports to localStorage:', error);
+    }
   }, [airports]);
+
+  // Load configs from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedConfigs = localStorage.getItem('configs');
+      if (savedConfigs) {
+        const parsedConfigs = JSON.parse(savedConfigs);
+        setConfigs(parsedConfigs);
+        console.log('Loaded configs from localStorage:', parsedConfigs);
+      }
+    } catch (error) {
+      console.error('Error loading configs from localStorage:', error);
+    }
+  }, []);
+
+  // Save configs to localStorage whenever configs change
+  useEffect(() => {
+    try {
+      localStorage.setItem('configs', JSON.stringify(configs));
+      console.log('Saved configs to localStorage:', configs);
+    } catch (error) {
+      console.error('Error saving configs to localStorage:', error);
+    }
+  }, [configs]);
+
+  // Load runways from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedRunways = localStorage.getItem('runways');
+      if (savedRunways) {
+        const parsedRunways = JSON.parse(savedRunways);
+        setRunways(parsedRunways);
+        console.log('Loaded runways from localStorage:', parsedRunways);
+      }
+    } catch (error) {
+      console.error('Error loading runways from localStorage:', error);
+    }
+  }, []);
+
+  // Save runways to localStorage whenever runways change
+  useEffect(() => {
+    try {
+      localStorage.setItem('runways', JSON.stringify(runways));
+      console.log('Saved runways to localStorage:', runways);
+    } catch (error) {
+      console.error('Error saving runways to localStorage:', error);
+    }
+  }, [runways]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showWakeCategoryDropdown) {
+        setShowWakeCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showWakeCategoryDropdown]);
+
+  // Make functions available globally for debugging
+  useEffect(() => {
+    window.testLocalStorage = testLocalStorage;
+    window.debugLocalStorage = debugLocalStorage;
+    window.clearAllData = clearAllData;
+    window.currentAppState = () => ({
+      airports,
+      routes,
+      runways,
+      configs
+    });
+  }, [airports, routes, runways, configs]);
 
   // Validation functions
   const validateAirlines = (value) => {
@@ -110,6 +239,53 @@ function App() {
     setTimeout(() => {
       setNotification({ show: false, message: '', type: 'success' });
     }, 3000);
+  };
+
+  // Debug function to check localStorage
+  const debugLocalStorage = () => {
+    console.log('=== localStorage Debug ===');
+    console.log('localStorage available:', typeof localStorage !== 'undefined');
+    console.log('localStorage quota:', navigator.storage ? navigator.storage.estimate() : 'Not available');
+    console.log('airports:', localStorage.getItem('airports'));
+    console.log('flight-routes:', localStorage.getItem('flight-routes'));
+    console.log('runways:', localStorage.getItem('runways'));
+    console.log('configs:', localStorage.getItem('configs'));
+    console.log('Current state airports:', airports);
+    console.log('Current state routes:', routes);
+    console.log('Current state runways:', runways);
+    console.log('Current state configs:', configs);
+    console.log('========================');
+  };
+
+  // Test localStorage function
+  const testLocalStorage = () => {
+    console.log('=== Testing localStorage ===');
+    try {
+      localStorage.setItem('test', 'Hello World');
+      const testValue = localStorage.getItem('test');
+      console.log('Test value:', testValue);
+      localStorage.removeItem('test');
+      console.log('localStorage is working!');
+      return true;
+    } catch (error) {
+      console.error('localStorage test failed:', error);
+      return false;
+    }
+  };
+
+
+
+  // Function to clear all localStorage data
+  const clearAllData = () => {
+    localStorage.removeItem('airports');
+    localStorage.removeItem('flight-routes');
+    localStorage.removeItem('runways');
+    localStorage.removeItem('configs');
+    setAirports([]);
+    setRoutes([]);
+    setRunways([]);
+    setConfigs([]);
+    showNotification('All data cleared!', 'success');
   };
 
   const handleInputChange = (field, value) => {
@@ -160,6 +336,70 @@ function App() {
       setValidationErrors(prev => ({ ...prev, [field]: false }));
     }
   };
+
+  const handleInfoDataChange = (field, value) => {
+    setInfoData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRunwaysDataChange = (field, value) => {
+    setRunwaysData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddRunway = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['rwy1', 'rwy2', 'elevation1', 'elevation2', 'track1', 'track2', 'coordinate1', 'coordinate2'];
+    const emptyFields = requiredFields.filter(field => !runwaysData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    const newRunway = {
+      id: Math.random().toString(36).substr(2, 9),
+      rwy1: runwaysData.rwy1,
+      rwy2: runwaysData.rwy2,
+      elevation1: runwaysData.elevation1,
+      elevation2: runwaysData.elevation2,
+      track1: runwaysData.track1,
+      track2: runwaysData.track2,
+      coordinate1: runwaysData.coordinate1,
+      coordinate2: runwaysData.coordinate2,
+      createdAt: new Date().toISOString()
+    };
+
+    setRunways(prev => [...prev, newRunway]);
+    
+    // Clear form
+    setRunwaysData({
+      rwy1: '',
+      rwy2: '',
+      elevation1: '',
+      elevation2: '',
+      track1: '',
+      track2: '',
+      coordinate1: '',
+      coordinate2: '',
+    });
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Show success notification
+    showNotification('Runway added successfully!', 'success');
+  };
+
+  const handleDeleteRunway = (id) => {
+    setRunways(prev => prev.filter(runway => runway.id !== id));
+    showNotification('Runway deleted successfully!', 'success');
+  };
+
+
 
   const handleAddRoute = () => {
     // Check if all required fields are filled
@@ -361,6 +601,7 @@ function App() {
       
       const updatedConfigs = [...configs, newConfig];
       setConfigs(updatedConfigs);
+      localStorage.setItem('configs', JSON.stringify(updatedConfigs));
       
       showNotification(`Config ${configName} created for ${selectedAirportForConfig} successfully!`);
       
@@ -394,8 +635,23 @@ function App() {
       };
       
       const updatedAirports = [...airports, newAirport];
+      console.log('=== Creating new airport ===');
+      console.log('Current airports:', airports);
+      console.log('New airport:', newAirport);
+      console.log('Updated airports:', updatedAirports);
+      
       setAirports(updatedAirports);
-      localStorage.setItem('airports', JSON.stringify(updatedAirports));
+      
+      try {
+        localStorage.setItem('airports', JSON.stringify(updatedAirports));
+        console.log('Successfully saved to localStorage');
+        
+        // Verify it was saved
+        const saved = localStorage.getItem('airports');
+        console.log('Verified saved data:', saved);
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
       
       setShowNameInput(false);
       setNameInputValue('');
@@ -436,12 +692,17 @@ function App() {
 
   const confirmDeleteAirport = () => {
     if (airportToDelete) {
-      setAirports(prev => prev.filter(airport => airport.id !== airportToDelete.id));
+      const updatedAirports = airports.filter(airport => airport.id !== airportToDelete.id);
+      setAirports(updatedAirports);
+      localStorage.setItem('airports', JSON.stringify(updatedAirports));
+      
       if (selectedAirport === airportToDelete.id) {
         setSelectedAirport('');
       }
       setShowConfirmDelete(false);
       setAirportToDelete(null);
+      
+      showNotification(`Airport ${airportToDelete.name} deleted successfully!`);
     }
   };
 
@@ -2760,7 +3021,7 @@ function App() {
                   <label style={styles.label}>Airport</label>
                   <input
                     type="text"
-                                            placeholder="ENTC"
+                                            placeholder="ESSA"
                     value={formData.airport}
                     onChange={(e) => handleInputChange('airport', e.target.value)}
                     style={getInputStyle('airport')}
@@ -2813,16 +3074,73 @@ function App() {
                 
                 <div style={styles.inputGroup}>
                   <label style={styles.label}>Wake Category</label>
-                  <select
-                    value={formData.wake}
-                    onChange={(e) => handleInputChange('wake', e.target.value)}
-                    style={getSelectStyle('wake')}
-                  >
-                    <option value="L">L</option>
-                    <option value="M">M</option>
-                    <option value="H">H</option>
-                    <option value="J">J</option>
-                  </select>
+                  <div style={{position: 'relative', width: '100%'}}>
+                    <div
+                      style={{
+                        ...styles.input,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                      onClick={() => setShowWakeCategoryDropdown(!showWakeCategoryDropdown)}
+                    >
+                      <span style={{color: formData.wake ? '#0B1E39' : '#9ca3af'}}>
+                        {formData.wake || 'Select wake category...'}
+                      </span>
+                      <span className="material-icons" style={{fontSize: '20px', color: '#6b7280'}}>
+                        {showWakeCategoryDropdown ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                      </span>
+                    </div>
+                    
+                    {/* Wake Category Dropdown */}
+                    {showWakeCategoryDropdown && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        zIndex: 1000,
+                        maxHeight: '200px',
+                        overflow: 'auto'
+                      }}>
+                        {['L', 'M', 'H', 'J'].map((category) => (
+                          <div
+                            key={category}
+                            style={{
+                              padding: '12px',
+                              cursor: 'pointer',
+                              fontFamily: 'Inter, sans-serif',
+                              fontSize: '14px',
+                              color: '#0B1E39',
+                              borderBottom: '1px solid #f3f4f6',
+                              backgroundColor: formData.wake === category ? '#f3f4f6' : 'white'
+                            }}
+                            onClick={() => {
+                              handleInputChange('wake', category);
+                              setShowWakeCategoryDropdown(false);
+                            }}
+                            onMouseEnter={(e) => {
+                              if (formData.wake !== category) {
+                                e.target.style.backgroundColor = '#f9fafb';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (formData.wake !== category) {
+                                e.target.style.backgroundColor = 'white';
+                              }
+                            }}
+                          >
+                            {category}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={styles.inputGroup}>
@@ -3079,14 +3397,336 @@ function App() {
             {currentAirportView.type === 'info' && (
               <div>
                 <h2 style={styles.cardTitle}>INFO for {currentAirportView.airport.name}</h2>
-                <p>INFO content coming soon...</p>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>Airport Information</h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>CENTERPOINT</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 59.6498, 17.9238"
+                        value={infoData.centerpoint}
+                        onChange={(e) => handleInfoDataChange('centerpoint', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>MAGNETIC VARIATION</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 7E"
+                        value={infoData.magneticVariation}
+                        onChange={(e) => handleInfoDataChange('magneticVariation', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>ELEVATION</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 42"
+                        value={infoData.elevation}
+                        onChange={(e) => handleInfoDataChange('elevation', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>NAME</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Stockholm Arlanda Airport"
+                        value={infoData.name}
+                        onChange={(e) => handleInfoDataChange('name', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <div style={{position: 'relative', display: 'inline-block'}}>
+                        <label style={styles.label}>DEFAULT ZOOM</label>
+                        <span 
+                          className="material-symbols-outlined" 
+                          style={{
+                            fontSize: '16px',
+                            color: '#6b7280',
+                            marginLeft: '4px',
+                            cursor: 'default',
+                            verticalAlign: 'middle'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.color = '#0B1E39';
+                            setShowZoomTooltip(true);
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.color = '#6b7280';
+                            setShowZoomTooltip(false);
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setShowZoomTooltip(!showZoomTooltip);
+                            }
+                          }}
+                        >
+                          help
+                        </span>
+                        
+                        {/* Custom Tooltip */}
+                        {showZoomTooltip && (
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              bottom: '100%',
+                              left: '0',
+                              backgroundColor: 'white',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                              padding: '12px',
+                              fontSize: '14px',
+                              fontFamily: 'Inter, sans-serif',
+                              color: '#0B1E39',
+                              zIndex: 1000,
+                              whiteSpace: 'nowrap',
+                              marginBottom: '4px',
+                              pointerEvents: 'none'
+                            }}
+                            role="tooltip"
+                            aria-hidden="true"
+                          >
+                            Low Number = Zoomed Out
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="e.g., 12"
+                        value={infoData.defaultZoom}
+                        onChange={(e) => handleInfoDataChange('defaultZoom', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>BACKGROUND COLOUR</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., #000000"
+                        value={infoData.backgroundColour}
+                        onChange={(e) => handleInfoDataChange('backgroundColour', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>TRANSITION ALTITUDE</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 5000"
+                        value={infoData.transitionAltitude}
+                        onChange={(e) => handleInfoDataChange('transitionAltitude', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {currentAirportView.type === 'runways' && (
               <div>
                 <h2 style={styles.cardTitle}>RUNWAYS for {currentAirportView.airport.name}</h2>
-                <p>RUNWAYS content coming soon...</p>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>Add New Runway</h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>RWY 1</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 01L"
+                        value={runwaysData.rwy1}
+                        onChange={(e) => handleRunwaysDataChange('rwy1', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>RWY 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 19R"
+                        value={runwaysData.rwy2}
+                        onChange={(e) => handleRunwaysDataChange('rwy2', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>ELEVATION 1</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 45"
+                        value={runwaysData.elevation1}
+                        onChange={(e) => handleRunwaysDataChange('elevation1', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>ELEVATION 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 45"
+                        value={runwaysData.elevation2}
+                        onChange={(e) => handleRunwaysDataChange('elevation2', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>TRACK 1</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 015"
+                        value={runwaysData.track1}
+                        onChange={(e) => handleRunwaysDataChange('track1', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>TRACK 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 195"
+                        value={runwaysData.track2}
+                        onChange={(e) => handleRunwaysDataChange('track2', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>COORDINATE 1</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 59.6498, 17.9238"
+                        value={runwaysData.coordinate1}
+                        onChange={(e) => handleRunwaysDataChange('coordinate1', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>COORDINATE 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 59.6498, 17.9238"
+                        value={runwaysData.coordinate2}
+                        onChange={(e) => handleRunwaysDataChange('coordinate2', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                  
+                  <button onClick={handleAddRunway} style={styles.button}>
+                    <span className="material-icons">add</span>
+                    Add Runway
+                  </button>
+                </div>
+
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                    <h2 style={styles.cardTitle}>Runways</h2>
+                    <div style={styles.searchContainer}>
+                      <span className="material-icons" style={styles.searchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search by RWY 1, RWY 2, Track, or Coordinates..."
+                        value={runwaysSearchTerm}
+                        onChange={(e) => setRunwaysSearchTerm(e.target.value)}
+                        style={styles.searchInput}
+                      />
+                    </div>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>RWY 1</th>
+                          <th style={styles.tableCell}>RWY 2</th>
+                          <th style={styles.tableCell}>ELEVATION 1</th>
+                          <th style={styles.tableCell}>ELEVATION 2</th>
+                          <th style={styles.tableCell}>TRACK 1</th>
+                          <th style={styles.tableCell}>TRACK 2</th>
+                          <th style={styles.tableCell}>COORDINATE 1</th>
+                          <th style={styles.tableCell}>COORDINATE 2</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const filteredRunways = runways.filter(runway => 
+                            runway.rwy1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                            runway.rwy2.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                            runway.track1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                            runway.track2.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                            runway.coordinate1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                            runway.coordinate2.toLowerCase().includes(runwaysSearchTerm.toLowerCase())
+                          );
+                          
+                          return filteredRunways.map((runway) => (
+                            <tr key={runway.id} style={styles.tableRow}>
+                              <td style={styles.tableCell}>{runway.rwy1}</td>
+                              <td style={styles.tableCell}>{runway.rwy2}</td>
+                              <td style={styles.tableCell}>{runway.elevation1}</td>
+                              <td style={styles.tableCell}>{runway.elevation2}</td>
+                              <td style={styles.tableCell}>{runway.track1}</td>
+                              <td style={styles.tableCell}>{runway.track2}</td>
+                              <td style={styles.tableCell}>{runway.coordinate1}</td>
+                              <td style={styles.tableCell}>{runway.coordinate2}</td>
+                              <td style={styles.tableCell}>
+                                <button
+                                  onClick={() => handleDeleteRunway(runway.id)}
+                                  style={styles.deleteButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                  {runways.length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No runways added yet. Add your first runway above!</p>
+                    </div>
+                  )}
+                  {runways.length > 0 && runways.filter(runway => 
+                    runway.rwy1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                    runway.rwy2.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                    runway.track1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                    runway.track2.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                    runway.coordinate1.toLowerCase().includes(runwaysSearchTerm.toLowerCase()) ||
+                    runway.coordinate2.toLowerCase().includes(runwaysSearchTerm.toLowerCase())
+                  ).length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No runways found matching your search.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -3109,7 +3749,10 @@ function App() {
 
 
         {currentView === 'settings' && (
-          <div style={styles.settingsContainer}>
+          <div style={{
+            ...styles.settingsContainer,
+            overflowY: showAirportDropdownForManageConfigs ? 'visible' : 'auto'
+          }}>
             <h2 style={styles.settingsTitle}>Settings</h2>
             
             {/* Settings Navigation */}
@@ -3210,7 +3853,7 @@ function App() {
                   <label style={{display: 'block', marginBottom: '8px', fontFamily: 'Inter, sans-serif', color: '#374151', fontSize: '14px', fontWeight: '500'}}>
                     Select Airport
                   </label>
-                  <div style={{position: 'relative', maxWidth: '300px'}}>
+                  <div style={{position: 'relative', maxWidth: '300px', zIndex: 1001}}>
                     <div
                       style={{
                         ...styles.settingsSearchInput,
@@ -3240,8 +3883,8 @@ function App() {
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        zIndex: 1000,
-                        maxHeight: '200px',
+                        zIndex: 9999,
+                        maxHeight: '300px',
                         overflow: 'auto',
                         overflowX: 'hidden'
                       }}>
