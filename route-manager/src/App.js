@@ -96,13 +96,22 @@ function App() {
   useEffect(() => {
     try {
       const savedRoutes = localStorage.getItem('flight-routes');
-      if (savedRoutes) {
+      if (savedRoutes && savedRoutes !== '[]' && savedRoutes !== 'null') {
         const parsedRoutes = JSON.parse(savedRoutes);
-        setRoutes(parsedRoutes);
-        console.log('Loaded routes from localStorage:', parsedRoutes);
+        if (Array.isArray(parsedRoutes) && parsedRoutes.length > 0) {
+          setRoutes(parsedRoutes);
+          console.log('Loaded routes from localStorage:', parsedRoutes);
+        } else {
+          console.log('Parsed data is not a valid routes array, using empty array');
+          setRoutes([]);
+        }
+      } else {
+        console.log('No valid saved routes found in localStorage');
+        setRoutes([]);
       }
     } catch (error) {
       console.error('Error loading routes from localStorage:', error);
+      setRoutes([]);
     }
   }, []);
 
@@ -113,24 +122,46 @@ function App() {
       const savedAirports = localStorage.getItem('airports');
       console.log('Raw savedAirports:', savedAirports);
       
-      if (savedAirports) {
+      if (savedAirports && savedAirports !== '[]' && savedAirports !== 'null') {
         const parsedAirports = JSON.parse(savedAirports);
         console.log('Parsed airports:', parsedAirports);
-        setAirports(parsedAirports);
-        console.log('Set airports state to:', parsedAirports);
+        
+        // Validate that it's actually an array with airport objects
+        if (Array.isArray(parsedAirports) && parsedAirports.length > 0) {
+          setAirports(parsedAirports);
+          console.log('Set airports state to:', parsedAirports);
+        } else {
+          console.log('Parsed data is not a valid airports array, using empty array');
+          setAirports([]);
+        }
       } else {
-        console.log('No saved airports found in localStorage');
+        console.log('No valid saved airports found in localStorage');
+        setAirports([]);
       }
     } catch (error) {
       console.error('Error loading airports from localStorage:', error);
+      setAirports([]);
     }
   }, []);
 
   // Save routes to localStorage whenever routes change
   useEffect(() => {
+    // Skip saving during initial load
+    if (routes.length === 0) {
+      console.log('Skipping save - routes array is empty (likely initial load)');
+      return;
+    }
+    
     try {
-      localStorage.setItem('flight-routes', JSON.stringify(routes));
-      console.log('Saved routes to localStorage:', routes);
+      // Only save if there are actually routes
+      if (routes && routes.length > 0) {
+        localStorage.setItem('flight-routes', JSON.stringify(routes));
+        console.log('Saved routes to localStorage:', routes);
+      } else {
+        // Remove the key if no routes
+        localStorage.removeItem('flight-routes');
+        console.log('Removed routes from localStorage (no routes)');
+      }
     } catch (error) {
       console.error('Error saving routes to localStorage:', error);
     }
@@ -138,9 +169,29 @@ function App() {
 
   // Save airports to localStorage whenever airports change
   useEffect(() => {
+    console.log('=== useEffect triggered for airports ===');
+    console.log('airports state changed to:', airports);
+    
+    // Skip saving during initial load
+    if (airports.length === 0) {
+      console.log('Skipping save - airports array is empty (likely initial load)');
+      return;
+    }
+    
     try {
-      localStorage.setItem('airports', JSON.stringify(airports));
-      console.log('Saved airports to localStorage:', airports);
+      // Only save if there are actually airports
+      if (airports && airports.length > 0) {
+        localStorage.setItem('airports', JSON.stringify(airports));
+        console.log('Saved airports to localStorage:', airports);
+        
+        // Verify it was saved
+        const saved = localStorage.getItem('airports');
+        console.log('Verified saved data:', saved);
+      } else {
+        // Remove the key if no airports
+        localStorage.removeItem('airports');
+        console.log('Removed airports from localStorage (no airports)');
+      }
     } catch (error) {
       console.error('Error saving airports to localStorage:', error);
     }
@@ -174,21 +225,43 @@ function App() {
   useEffect(() => {
     try {
       const savedRunways = localStorage.getItem('runways');
-      if (savedRunways) {
+      if (savedRunways && savedRunways !== '[]' && savedRunways !== 'null') {
         const parsedRunways = JSON.parse(savedRunways);
-        setRunways(parsedRunways);
-        console.log('Loaded runways from localStorage:', parsedRunways);
+        if (Array.isArray(parsedRunways) && parsedRunways.length > 0) {
+          setRunways(parsedRunways);
+          console.log('Loaded runways from localStorage:', parsedRunways);
+        } else {
+          console.log('Parsed data is not a valid runways array, using empty array');
+          setRunways([]);
+        }
+      } else {
+        console.log('No valid saved runways found in localStorage');
+        setRunways([]);
       }
     } catch (error) {
       console.error('Error loading runways from localStorage:', error);
+      setRunways([]);
     }
   }, []);
 
   // Save runways to localStorage whenever runways change
   useEffect(() => {
+    // Skip saving during initial load
+    if (runways.length === 0) {
+      console.log('Skipping save - runways array is empty (likely initial load)');
+      return;
+    }
+    
     try {
-      localStorage.setItem('runways', JSON.stringify(runways));
-      console.log('Saved runways to localStorage:', runways);
+      // Only save if there are actually runways
+      if (runways && runways.length > 0) {
+        localStorage.setItem('runways', JSON.stringify(runways));
+        console.log('Saved runways to localStorage:', runways);
+      } else {
+        // Remove the key if no runways
+        localStorage.removeItem('runways');
+        console.log('Removed runways from localStorage (no runways)');
+      }
     } catch (error) {
       console.error('Error saving runways to localStorage:', error);
     }
@@ -213,6 +286,7 @@ function App() {
     window.testLocalStorage = testLocalStorage;
     window.debugLocalStorage = debugLocalStorage;
     window.clearAllData = clearAllData;
+    window.testCreateAirport = testCreateAirport;
     window.currentAppState = () => ({
       airports,
       routes,
@@ -271,6 +345,26 @@ function App() {
       console.error('localStorage test failed:', error);
       return false;
     }
+  };
+
+  // Test creating an airport manually
+  const testCreateAirport = () => {
+    console.log('=== Testing airport creation ===');
+    const testAirport = {
+      id: Date.now().toString(),
+      name: 'TEST',
+      createdAt: new Date().toISOString()
+    };
+    
+    console.log('Creating test airport:', testAirport);
+    setAirports([testAirport]);
+    
+    // Check if useEffect triggers
+    setTimeout(() => {
+      console.log('Checking localStorage after 1 second...');
+      const saved = localStorage.getItem('airports');
+      console.log('Saved airports:', saved);
+    }, 1000);
   };
 
 
