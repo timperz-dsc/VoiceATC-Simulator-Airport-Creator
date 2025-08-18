@@ -94,6 +94,18 @@ function App() {
   const [runwaysSearchTerm, setRunwaysSearchTerm] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
 
+  // GEO data state
+  const [geoData, setGeoData] = useState({
+    name: '',
+    input: '',
+  });
+  
+  const [geoEntries, setGeoEntries] = useState([]);
+  const [geoSearchTerm, setGeoSearchTerm] = useState('');
+  const [editingGeoEntry, setEditingGeoEntry] = useState(null);
+  const [showConfirmDeleteGeo, setShowConfirmDeleteGeo] = useState(false);
+  const [geoEntryToDelete, setGeoEntryToDelete] = useState(null);
+
   // Load routes from localStorage on component mount
   useEffect(() => {
     try {
@@ -269,6 +281,52 @@ function App() {
     }
   }, [runways]);
 
+  // Load geo entries from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedGeoEntries = localStorage.getItem('geoEntries');
+      if (savedGeoEntries && savedGeoEntries !== '[]' && savedGeoEntries !== 'null') {
+        const parsedGeoEntries = JSON.parse(savedGeoEntries);
+        if (Array.isArray(parsedGeoEntries) && parsedGeoEntries.length > 0) {
+          setGeoEntries(parsedGeoEntries);
+          console.log('Loaded geo entries from localStorage:', parsedGeoEntries);
+        } else {
+          console.log('Parsed data is not a valid geo entries array, using empty array');
+          setGeoEntries([]);
+        }
+      } else {
+        console.log('No valid saved geo entries found in localStorage');
+        setGeoEntries([]);
+      }
+    } catch (error) {
+      console.error('Error loading geo entries from localStorage:', error);
+      setGeoEntries([]);
+    }
+  }, []);
+
+  // Save geo entries to localStorage whenever geoEntries change
+  useEffect(() => {
+    // Skip saving during initial load
+    if (geoEntries.length === 0) {
+      console.log('Skipping save - geo entries array is empty (likely initial load)');
+      return;
+    }
+    
+    try {
+      // Only save if there are actually geo entries
+      if (geoEntries && geoEntries.length > 0) {
+        localStorage.setItem('geoEntries', JSON.stringify(geoEntries));
+        console.log('Saved geo entries to localStorage:', geoEntries);
+      } else {
+        // Remove the key if no geo entries
+        localStorage.removeItem('geoEntries');
+        console.log('Removed geo entries from localStorage (no geo entries)');
+      }
+    } catch (error) {
+      console.error('Error saving geo entries to localStorage:', error);
+    }
+  }, [geoEntries]);
+
   // Load info data from localStorage on component mount
   useEffect(() => {
     try {
@@ -307,9 +365,10 @@ function App() {
       airports,
       routes,
       runways,
-      configs
+      configs,
+      geoEntries
     });
-  }, [airports, routes, runways, configs]);
+  }, [airports, routes, runways, configs, geoEntries]);
 
   // Validation functions
   const validateAirlines = (value) => {
@@ -341,11 +400,13 @@ function App() {
     console.log('runways:', localStorage.getItem('runways'));
     console.log('configs:', localStorage.getItem('configs'));
     console.log('infoData:', localStorage.getItem('infoData'));
+    console.log('geoEntries:', localStorage.getItem('geoEntries'));
     console.log('Current state airports:', airports);
     console.log('Current state routes:', routes);
     console.log('Current state runways:', runways);
     console.log('Current state configs:', configs);
     console.log('Current state infoData:', infoData);
+    console.log('Current state geoEntries:', geoEntries);
     console.log('========================');
   };
 
@@ -394,6 +455,7 @@ function App() {
     localStorage.removeItem('runways');
     localStorage.removeItem('configs');
     localStorage.removeItem('infoData');
+    localStorage.removeItem('geoEntries');
     setAirports([]);
     setRoutes([]);
     setRunways([]);
@@ -408,6 +470,11 @@ function App() {
       transitionAltitude: '',
     });
     setInfoDataSaved({});
+    setGeoEntries([]);
+    setGeoData({
+      name: '',
+      input: '',
+    });
     showNotification('All data cleared!', 'success');
   };
 
@@ -615,7 +682,143 @@ function App() {
     showNotification('Runway deleted successfully!', 'success');
   };
 
+  // GEO data handling functions
+  const handleGeoDataChange = (field, value) => {
+    setGeoData(prev => ({ ...prev, [field]: value }));
+  };
 
+  const handleAddGeoEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'input'];
+    const emptyFields = requiredFields.filter(field => !geoData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    const newGeoEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: geoData.name,
+      input: geoData.input,
+      createdAt: new Date().toISOString()
+    };
+
+    setGeoEntries(prev => [...prev, newGeoEntry]);
+    
+    // Clear form
+    setGeoData({
+      name: '',
+      input: '',
+    });
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Reset textarea height after a short delay to ensure state is updated
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
+      if (textarea) {
+        textarea.style.height = '40px';
+      }
+    }, 10);
+    
+    // Show success notification
+    showNotification('GEO entry added successfully!', 'success');
+  };
+
+  const handleDeleteGeoEntry = (entry) => {
+    setGeoEntryToDelete(entry);
+    setShowConfirmDeleteGeo(true);
+  };
+
+  const confirmDeleteGeoEntry = () => {
+    if (geoEntryToDelete) {
+      setGeoEntries(prev => prev.filter(entry => entry.id !== geoEntryToDelete.id));
+      setShowConfirmDeleteGeo(false);
+      setGeoEntryToDelete(null);
+      showNotification(`GEO entry "${geoEntryToDelete.name}" deleted successfully!`, 'success');
+    }
+  };
+
+  const cancelDeleteGeoEntry = () => {
+    setShowConfirmDeleteGeo(false);
+    setGeoEntryToDelete(null);
+  };
+
+  const handleEditGeoEntry = (entry) => {
+    setEditingGeoEntry(entry);
+    setGeoData({
+      name: entry.name,
+      input: entry.input,
+    });
+  };
+
+  const handleUpdateGeoEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'input'];
+    const emptyFields = requiredFields.filter(field => !geoData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Update the entry
+    setGeoEntries(prev => prev.map(entry => 
+      entry.id === editingGeoEntry.id 
+        ? { ...entry, name: geoData.name, input: geoData.input }
+        : entry
+    ));
+    
+    // Clear form and editing state
+    setGeoData({
+      name: '',
+      input: '',
+    });
+    setEditingGeoEntry(null);
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Reset textarea height
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
+      if (textarea) {
+        textarea.style.height = '40px';
+      }
+    }, 10);
+    
+    // Show success notification
+    showNotification('GEO entry updated successfully!', 'success');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGeoEntry(null);
+    setGeoData({
+      name: '',
+      input: '',
+    });
+    setValidationErrors({});
+    
+    // Reset textarea height
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
+      if (textarea) {
+        textarea.style.height = '40px';
+      }
+    }, 10);
+  };
 
   const handleAddRoute = () => {
     // Check if all required fields are filled
@@ -1253,6 +1456,20 @@ function App() {
       fontFamily: 'Inter, sans-serif',
       width: '100%',
       boxSizing: 'border-box',
+    },
+    textarea: {
+      padding: '10px 12px',
+      border: '1px solid #d1d5db',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontFamily: 'Inter, sans-serif',
+      width: '100%',
+      boxSizing: 'border-box',
+      resize: 'vertical',
+      minHeight: '40px',
+      maxHeight: '400px', // Increased for longer content
+      overflowY: 'auto',
+      lineHeight: '1.4',
     },
     button: {
       backgroundColor: '#0B1E39',
@@ -2895,7 +3112,39 @@ function App() {
               ...styles.navButton,
               ...(currentView === 'settings' ? styles.navButtonActive : {}),
             }}
-            onClick={() => handleNavigation('settings')}
+            onClick={() => {
+              // Navigate to settings first, then close airport views
+              setIsTransitioning(true);
+              setTimeout(() => {
+                setCurrentView('settings');
+                // Close all airport views and dropdowns after navigation
+                setCurrentAirportView(null);
+                setShowAirportsDropdown(false);
+                setClickedAirport(null);
+                setShowSubDropdown(null);
+                setShowGeneralFilesDropdown(null);
+                setShowConfig1Dropdown(null);
+                setShowConfig2Dropdown(null);
+                setShowNavAidsDropdown(null);
+                setShowProcsDropdown(null);
+                setShowTrafficView(null);
+                setActiveFourthLevelDropdown(null);
+                setOpenConfigDropdowns({});
+                setShowNameInput(false);
+                setNameInputValue('');
+                setNameInputType('');
+                setSelectedAirportForConfig('');
+                setShowAirportDropdownForConfig(false);
+                setAirportSearchForConfig('');
+                setSelectedAirportForManageConfigs('');
+                setShowAirportDropdownForManageConfigs(false);
+                setAirportSearchForManageConfigs('');
+                setShowWakeCategoryDropdown(false);
+                setShowZoomTooltip(false);
+                setLogoHovered(false);
+                setIsTransitioning(false);
+              }, 100);
+            }}
             onMouseEnter={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButtonHover.backgroundColor, e.target.style.color = styles.navButtonHover.color)}
             onMouseLeave={(e) => !e.target.style.backgroundColor.includes('#0B1E39') && (e.target.style.backgroundColor = styles.navButton.backgroundColor, e.target.style.color = styles.navButton.color)}
           >
@@ -3168,6 +3417,46 @@ function App() {
               </button>
               <button
                 onClick={confirmDeleteAirport}
+                onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonSubmit,
+                  ...(buttonHover.delete ? styles.nameInputButtonSubmitHover : {})
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete GEO Entry Modal */}
+      {showConfirmDeleteGeo && (
+        <div style={styles.nameInputOverlay}>
+          <div style={styles.nameInputModal}>
+            <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+              Delete GEO Entry
+            </h3>
+            <p style={{marginBottom: '24px', fontFamily: 'Inter, sans-serif', color: '#6b7280'}}>
+              Are you sure you want to delete "{geoEntryToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={cancelDeleteGeoEntry}
+                onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonCancel,
+                  ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteGeoEntry}
                 onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
                 onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
                 style={{
@@ -3959,7 +4248,180 @@ function App() {
             {currentAirportView.type === 'geo' && (
               <div>
                 <h2 style={styles.cardTitle}>GEO for {currentAirportView.airport.name}</h2>
-                <p>GEO content coming soon...</p>
+                
+                {/* Search Section */}
+                <div style={styles.card}>
+                  <div style={styles.searchContainer}>
+                    <span className="material-icons" style={styles.searchIcon}>search</span>
+                    <input
+                      type="text"
+                      placeholder="Search by Name or Input..."
+                      value={geoSearchTerm}
+                      onChange={(e) => setGeoSearchTerm(e.target.value)}
+                      style={styles.searchInput}
+                    />
+                  </div>
+                </div>
+
+                {/* GEO Entries as Individual Cards */}
+                {(() => {
+                  const filteredGeoEntries = geoEntries.filter(entry => 
+                    entry.name.toLowerCase().includes(geoSearchTerm.toLowerCase()) ||
+                    entry.input.toLowerCase().includes(geoSearchTerm.toLowerCase())
+                  );
+                  
+                  return filteredGeoEntries.map((entry) => (
+                    <div key={entry.id} style={styles.card}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px'}}>
+                        <h3 style={{...styles.cardTitle, marginBottom: '0', fontSize: '18px'}}>{entry.name}</h3>
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <button
+                            onClick={() => handleEditGeoEntry(entry)}
+                            style={{
+                              ...styles.deleteButton,
+                              backgroundColor: '#3b82f6',
+                              color: 'white'
+                            }}
+                          >
+                            <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteGeoEntry(entry)}
+                            style={styles.deleteButton}
+                          >
+                            <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        value={entry.input}
+                        readOnly
+                        style={{
+                          padding: '12px',
+                          backgroundColor: '#f9fafb',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          whiteSpace: 'pre-wrap',
+                          wordWrap: 'break-word',
+                          fontFamily: 'Inter, sans-serif',
+                          fontSize: '14px',
+                          lineHeight: '1.5',
+                          minHeight: '40px',
+                          maxHeight: '200px', // Max 10 rader (20px per rad)
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          resize: 'vertical',
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          cursor: 'default'
+                        }}
+                        rows={Math.min(entry.input.split('\n').length, 10)}
+                      />
+                    </div>
+                  ));
+                })()}
+
+                {/* New Entry Form */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>
+                    {editingGeoEntry ? `Edit GEO Entry: ${editingGeoEntry.name}` : 'Add New GEO Entry'}
+                  </h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Name</label>
+                      <input
+                        type="text"
+                        placeholder="Enter name..."
+                        value={geoData.name}
+                        onChange={(e) => handleGeoDataChange('name', e.target.value)}
+                        style={getInputStyle('name')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Input</label>
+                      <textarea
+                        placeholder="Enter input..."
+                        value={geoData.input}
+                        onChange={(e) => handleGeoDataChange('input', e.target.value)}
+                        style={{
+                          ...styles.textarea,
+                          minHeight: '40px',
+                          maxHeight: '400px', // Increased max height for longer content
+                          ...(validationErrors['input'] ? {
+                            border: '2px solid #dc2626',
+                            boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.1), 0 0 0 1px rgba(220, 38, 38, 0.2)',
+                            outline: 'none',
+                          } : {})
+                        }}
+                        rows={1}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            // Allow Enter to create new line, don't prevent default
+                            // Auto-resize the textarea
+                            const textarea = e.target;
+                            textarea.style.height = 'auto';
+                            textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+                          }
+                        }}
+                        onInput={(e) => {
+                          // Auto-resize on input
+                          const textarea = e.target;
+                          textarea.style.height = 'auto';
+                          textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{display: 'flex', gap: '12px'}}>
+                    {editingGeoEntry ? (
+                      <>
+                        <button onClick={handleUpdateGeoEntry} style={styles.button}>
+                          <span className="material-icons">save</span>
+                          Update Entry
+                        </button>
+                        <button 
+                          onClick={handleCancelEdit} 
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#6b7280',
+                            color: 'white'
+                          }}
+                        >
+                          <span className="material-icons">cancel</span>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={handleAddGeoEntry} style={styles.button}>
+                        <span className="material-icons">add</span>
+                        Add Entry
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Empty State */}
+                {geoEntries.length === 0 && (
+                  <div style={styles.card}>
+                    <div style={styles.emptyState}>
+                      <p>No GEO entries added yet. Add your first entry above!</p>
+                    </div>
+                  </div>
+                )}
+                {geoEntries.length > 0 && geoEntries.filter(entry => 
+                  entry.name.toLowerCase().includes(geoSearchTerm.toLowerCase()) ||
+                  entry.input.toLowerCase().includes(geoSearchTerm.toLowerCase())
+                ).length === 0 && (
+                  <div style={styles.card}>
+                    <div style={styles.emptyState}>
+                      <p>No GEO entries found matching your search.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
