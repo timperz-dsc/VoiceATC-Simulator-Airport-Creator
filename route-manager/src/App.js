@@ -106,6 +106,33 @@ function App() {
   const [showConfirmDeleteGeo, setShowConfirmDeleteGeo] = useState(false);
   const [geoEntryToDelete, setGeoEntryToDelete] = useState(null);
 
+  // MRVA data state
+  const [mrvaData, setMrvaData] = useState({
+    name: '',
+    coordinates: '',
+    altitude: '',
+    labelCoordinate: '',
+  });
+  
+  const [mrvaEntries, setMrvaEntries] = useState([]);
+  const [mrvaSearchTerm, setMrvaSearchTerm] = useState('');
+  const [editingMrvaEntry, setEditingMrvaEntry] = useState(null);
+  const [showConfirmDeleteMrva, setShowConfirmDeleteMrva] = useState(false);
+  const [mrvaEntryToDelete, setMrvaEntryToDelete] = useState(null);
+
+  // GLIDEPATH data state
+  const [glidepathData, setGlidepathData] = useState({
+    rwy: '',
+    angle: '',
+    length: '',
+  });
+  
+  const [glidepathEntries, setGlidepathEntries] = useState([]);
+  const [glidepathSearchTerm, setGlidepathSearchTerm] = useState('');
+  const [editingGlidepathEntry, setEditingGlidepathEntry] = useState(null);
+  const [showConfirmDeleteGlidepath, setShowConfirmDeleteGlidepath] = useState(false);
+  const [glidepathEntryToDelete, setGlidepathEntryToDelete] = useState(null);
+
   // Load routes from localStorage on component mount
   useEffect(() => {
     try {
@@ -327,6 +354,98 @@ function App() {
     }
   }, [geoEntries]);
 
+  // Load MRVA entries from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedMrvaEntries = localStorage.getItem('mrvaEntries');
+      if (savedMrvaEntries && savedMrvaEntries !== '[]' && savedMrvaEntries !== 'null') {
+        const parsedMrvaEntries = JSON.parse(savedMrvaEntries);
+        if (Array.isArray(parsedMrvaEntries) && parsedMrvaEntries.length > 0) {
+          setMrvaEntries(parsedMrvaEntries);
+          console.log('Loaded MRVA entries from localStorage:', parsedMrvaEntries);
+        } else {
+          console.log('Parsed data is not a valid MRVA entries array, using empty array');
+          setMrvaEntries([]);
+        }
+      } else {
+        console.log('No valid saved MRVA entries found in localStorage');
+        setMrvaEntries([]);
+      }
+    } catch (error) {
+      console.error('Error loading MRVA entries from localStorage:', error);
+      setMrvaEntries([]);
+    }
+  }, []);
+
+  // Save MRVA entries to localStorage whenever mrvaEntries change
+  useEffect(() => {
+    // Skip saving during initial load
+    if (mrvaEntries.length === 0) {
+      console.log('Skipping save - MRVA entries array is empty (likely initial load)');
+      return;
+    }
+    
+    try {
+      // Only save if there are actually MRVA entries
+      if (mrvaEntries && mrvaEntries.length > 0) {
+        localStorage.setItem('mrvaEntries', JSON.stringify(mrvaEntries));
+        console.log('Saved MRVA entries to localStorage:', mrvaEntries);
+      } else {
+        // Remove the key if no MRVA entries
+        localStorage.removeItem('mrvaEntries');
+        console.log('Removed MRVA entries from localStorage (no MRVA entries)');
+      }
+    } catch (error) {
+      console.error('Error saving MRVA entries to localStorage:', error);
+    }
+  }, [mrvaEntries]);
+
+  // Load GLIDEPATH entries from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedGlidepathEntries = localStorage.getItem('glidepathEntries');
+      if (savedGlidepathEntries && savedGlidepathEntries !== '[]' && savedGlidepathEntries !== 'null') {
+        const parsedGlidepathEntries = JSON.parse(savedGlidepathEntries);
+        if (Array.isArray(parsedGlidepathEntries) && parsedGlidepathEntries.length > 0) {
+          setGlidepathEntries(parsedGlidepathEntries);
+          console.log('Loaded GLIDEPATH entries from localStorage:', parsedGlidepathEntries);
+        } else {
+          console.log('Parsed data is not a valid GLIDEPATH entries array, using empty array');
+          setGlidepathEntries([]);
+        }
+      } else {
+        console.log('No valid saved GLIDEPATH entries found in localStorage');
+        setGlidepathEntries([]);
+      }
+    } catch (error) {
+      console.error('Error loading GLIDEPATH entries from localStorage:', error);
+      setGlidepathEntries([]);
+    }
+  }, []);
+
+  // Save GLIDEPATH entries to localStorage whenever glidepathEntries change
+  useEffect(() => {
+    // Skip saving during initial load
+    if (glidepathEntries.length === 0) {
+      console.log('Skipping save - GLIDEPATH entries array is empty (likely initial load)');
+      return;
+    }
+    
+    try {
+      // Only save if there are actually GLIDEPATH entries
+      if (glidepathEntries && glidepathEntries.length > 0) {
+        localStorage.setItem('glidepathEntries', JSON.stringify(glidepathEntries));
+        console.log('Saved GLIDEPATH entries to localStorage:', glidepathEntries);
+      } else {
+        // Remove the key if no GLIDEPATH entries
+        localStorage.removeItem('glidepathEntries');
+        console.log('Removed GLIDEPATH entries from localStorage (no GLIDEPATH entries)');
+      }
+    } catch (error) {
+      console.error('Error saving GLIDEPATH entries to localStorage:', error);
+    }
+  }, [glidepathEntries]);
+
   // Load info data from localStorage on component mount
   useEffect(() => {
     try {
@@ -366,9 +485,11 @@ function App() {
       routes,
       runways,
       configs,
-      geoEntries
+      geoEntries,
+      mrvaEntries,
+      glidepathEntries
     });
-  }, [airports, routes, runways, configs, geoEntries]);
+  }, [airports, routes, runways, configs, geoEntries, mrvaEntries, glidepathEntries]);
 
   // Validation functions
   const validateAirlines = (value) => {
@@ -401,12 +522,16 @@ function App() {
     console.log('configs:', localStorage.getItem('configs'));
     console.log('infoData:', localStorage.getItem('infoData'));
     console.log('geoEntries:', localStorage.getItem('geoEntries'));
+    console.log('mrvaEntries:', localStorage.getItem('mrvaEntries'));
+    console.log('glidepathEntries:', localStorage.getItem('glidepathEntries'));
     console.log('Current state airports:', airports);
     console.log('Current state routes:', routes);
     console.log('Current state runways:', runways);
     console.log('Current state configs:', configs);
     console.log('Current state infoData:', infoData);
     console.log('Current state geoEntries:', geoEntries);
+    console.log('Current state mrvaEntries:', mrvaEntries);
+    console.log('Current state glidepathEntries:', glidepathEntries);
     console.log('========================');
   };
 
@@ -456,6 +581,8 @@ function App() {
     localStorage.removeItem('configs');
     localStorage.removeItem('infoData');
     localStorage.removeItem('geoEntries');
+    localStorage.removeItem('mrvaEntries');
+    localStorage.removeItem('glidepathEntries');
     setAirports([]);
     setRoutes([]);
     setRunways([]);
@@ -474,6 +601,19 @@ function App() {
     setGeoData({
       name: '',
       input: '',
+    });
+    setMrvaEntries([]);
+    setMrvaData({
+      name: '',
+      coordinates: '',
+      altitude: '',
+      labelCoordinate: '',
+    });
+    setGlidepathEntries([]);
+    setGlidepathData({
+      rwy: '',
+      angle: '',
+      length: '',
     });
     showNotification('All data cleared!', 'success');
   };
@@ -720,12 +860,12 @@ function App() {
     // Clear validation errors
     setValidationErrors({});
     
-    // Reset textarea height after a short delay to ensure state is updated
+    // Reset resizable textareas to default height
     setTimeout(() => {
-      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
-      if (textarea) {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
         textarea.style.height = '40px';
-      }
+      });
     }, 10);
     
     // Show success notification
@@ -791,12 +931,12 @@ function App() {
     // Clear validation errors
     setValidationErrors({});
     
-    // Reset textarea height
+    // Reset resizable textareas to default height
     setTimeout(() => {
-      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
-      if (textarea) {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
         textarea.style.height = '40px';
-      }
+      });
     }, 10);
     
     // Show success notification
@@ -811,13 +951,266 @@ function App() {
     });
     setValidationErrors({});
     
-    // Reset textarea height
+    // Reset resizable textareas to default height
     setTimeout(() => {
-      const textarea = document.querySelector('textarea[placeholder="Enter input..."]');
-      if (textarea) {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
         textarea.style.height = '40px';
-      }
+      });
     }, 10);
+  };
+
+  // MRVA data handling functions
+  const handleMrvaDataChange = (field, value) => {
+    setMrvaData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddMrvaEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'coordinates', 'altitude', 'labelCoordinate'];
+    const emptyFields = requiredFields.filter(field => !mrvaData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    const newMrvaEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: mrvaData.name,
+      coordinates: mrvaData.coordinates,
+      altitude: mrvaData.altitude,
+      labelCoordinate: mrvaData.labelCoordinate,
+      createdAt: new Date().toISOString()
+    };
+
+    setMrvaEntries(prev => [...prev, newMrvaEntry]);
+    
+    // Clear form
+    setMrvaData({
+      name: '',
+      coordinates: '',
+      altitude: '',
+      labelCoordinate: '',
+    });
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Reset resizable textareas to default height
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
+        textarea.style.height = '40px';
+      });
+    }, 10);
+    
+    // Show success notification
+    showNotification('MRVA entry added successfully!', 'success');
+  };
+
+  const handleDeleteMrvaEntry = (entry) => {
+    setMrvaEntryToDelete(entry);
+    setShowConfirmDeleteMrva(true);
+  };
+
+  const confirmDeleteMrvaEntry = () => {
+    if (mrvaEntryToDelete) {
+      setMrvaEntries(prev => prev.filter(entry => entry.id !== mrvaEntryToDelete.id));
+      setShowConfirmDeleteMrva(false);
+      setMrvaEntryToDelete(null);
+      showNotification(`MRVA entry "${mrvaEntryToDelete.name}" deleted successfully!`, 'success');
+    }
+  };
+
+  const cancelDeleteMrvaEntry = () => {
+    setShowConfirmDeleteMrva(false);
+    setMrvaEntryToDelete(null);
+  };
+
+  const handleEditMrvaEntry = (entry) => {
+    setEditingMrvaEntry(entry);
+    setMrvaData({
+      name: entry.name,
+      coordinates: entry.coordinates,
+      altitude: entry.altitude,
+      labelCoordinate: entry.labelCoordinate,
+    });
+  };
+
+  const handleUpdateMrvaEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'coordinates', 'altitude', 'labelCoordinate'];
+    const emptyFields = requiredFields.filter(field => !mrvaData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Update the entry
+    setMrvaEntries(prev => prev.map(entry => 
+      entry.id === editingMrvaEntry.id 
+        ? { ...entry, name: mrvaData.name, coordinates: mrvaData.coordinates, altitude: mrvaData.altitude, labelCoordinate: mrvaData.labelCoordinate }
+        : entry
+    ));
+    
+    // Clear form and editing state
+    setMrvaData({
+      name: '',
+      coordinates: '',
+      altitude: '',
+      labelCoordinate: '',
+    });
+    setEditingMrvaEntry(null);
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Reset resizable textareas to default height
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
+        textarea.style.height = '40px';
+      });
+    }, 10);
+    
+    // Show success notification
+    showNotification('MRVA entry updated successfully!', 'success');
+  };
+
+  const handleCancelEditMrva = () => {
+    setEditingMrvaEntry(null);
+    setMrvaData({
+      name: '',
+      coordinates: '',
+      altitude: '',
+      labelCoordinate: '',
+    });
+    setValidationErrors({});
+    
+    // Reset resizable textareas to default height
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea[placeholder="Enter input..."], textarea[placeholder="Enter coordinates..."]');
+      textareas.forEach(textarea => {
+        textarea.style.height = '40px';
+      });
+    }, 10);
+  };
+
+  // GLIDEPATH data handling functions
+  const handleGlidepathDataChange = (field, value) => {
+    setGlidepathData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddGlidepathEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['rwy', 'angle', 'length'];
+    const emptyFields = requiredFields.filter(field => !glidepathData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    const newGlidepathEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      rwy: glidepathData.rwy,
+      angle: glidepathData.angle,
+      length: glidepathData.length,
+      createdAt: new Date().toISOString()
+    };
+
+    setGlidepathEntries(prev => [...prev, newGlidepathEntry]);
+    
+    // Clear form
+    setGlidepathData({
+      rwy: '',
+      angle: '',
+      length: '',
+    });
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Show success notification
+    showNotification('GLIDEPATH entry added successfully!', 'success');
+  };
+
+  const handleDeleteGlidepathEntry = (id) => {
+    setGlidepathEntries(prev => prev.filter(entry => entry.id !== id));
+    showNotification('GLIDEPATH entry deleted successfully!', 'success');
+  };
+
+  const handleEditGlidepathEntry = (entry) => {
+    setEditingGlidepathEntry(entry);
+    setGlidepathData({
+      rwy: entry.rwy,
+      angle: entry.angle,
+      length: entry.length,
+    });
+  };
+
+  const handleUpdateGlidepathEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['rwy', 'angle', 'length'];
+    const emptyFields = requiredFields.filter(field => !glidepathData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Update the entry
+    setGlidepathEntries(prev => prev.map(entry => 
+      entry.id === editingGlidepathEntry.id 
+        ? { ...entry, rwy: glidepathData.rwy, angle: glidepathData.angle, length: glidepathData.length }
+        : entry
+    ));
+    
+    // Clear form and editing state
+    setGlidepathData({
+      rwy: '',
+      angle: '',
+      length: '',
+    });
+    setEditingGlidepathEntry(null);
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Show success notification
+    showNotification('GLIDEPATH entry updated successfully!', 'success');
+  };
+
+  const handleCancelEditGlidepath = () => {
+    setEditingGlidepathEntry(null);
+    setGlidepathData({
+      rwy: '',
+      angle: '',
+      length: '',
+    });
+    setValidationErrors({});
   };
 
   const handleAddRoute = () => {
@@ -2360,6 +2753,12 @@ function App() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     console.log(`GLIDEPATH clicked for ${getConfigName('1')}`, airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'glidepath', airport: airport });
+                                    }
                                     // Close all dropdowns
                                     setShowAirportsDropdown(false);
                                     setClickedAirport(null);
@@ -2372,7 +2771,10 @@ function App() {
                                     setActiveFourthLevelDropdown(null);
                                   }}
                                 >
-                                  GLIDEPATH
+                                  <span>GLIDEPATH</span>
+                                  {currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
                                 </div>
                                 <div 
                                   style={styles.navSubDropdownItem}
@@ -2613,6 +3015,12 @@ function App() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     console.log(`GLIDEPATH clicked for ${getConfigName('2')}`, airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'glidepath', airport: airport });
+                                    }
                                     // Close all dropdowns
                                     setShowAirportsDropdown(false);
                                     setClickedAirport(null);
@@ -2625,7 +3033,10 @@ function App() {
                                     setActiveFourthLevelDropdown(null);
                                   }}
                                 >
-                                  GLIDEPATH
+                                  <span>GLIDEPATH</span>
+                                  {currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
                                 </div>
                                 <div 
                                   style={styles.navSubDropdownItem}
@@ -2872,6 +3283,12 @@ function App() {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           console.log(`GLIDEPATH clicked for ${config.name}`, airport.name);
+                                          // Toggle the view
+                                          if (currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id) {
+                                            setCurrentAirportView(null);
+                                          } else {
+                                            setCurrentAirportView({ type: 'glidepath', airport: airport });
+                                          }
                                           // Close all dropdowns
                                           setShowAirportsDropdown(false);
                                           setClickedAirport(null);
@@ -2885,7 +3302,10 @@ function App() {
                                           setOpenConfigDropdowns({});
                                         }}
                                       >
-                                        GLIDEPATH
+                                        <span>GLIDEPATH</span>
+                                        {currentAirportView && currentAirportView.type === 'glidepath' && currentAirportView.airport.id === airport.id && (
+                                          <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                        )}
                                       </div>
                                       <div 
                                         style={styles.navSubDropdownItem}
@@ -3457,6 +3877,46 @@ function App() {
               </button>
               <button
                 onClick={confirmDeleteGeoEntry}
+                onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonSubmit,
+                  ...(buttonHover.delete ? styles.nameInputButtonSubmitHover : {})
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete MRVA Entry Modal */}
+      {showConfirmDeleteMrva && (
+        <div style={styles.nameInputOverlay}>
+          <div style={styles.nameInputModal}>
+            <h3 style={{marginBottom: '16px', fontFamily: 'Inter, sans-serif', color: '#0B1E39'}}>
+              Delete MRVA Entry
+            </h3>
+            <p style={{marginBottom: '24px', fontFamily: 'Inter, sans-serif', color: '#6b7280'}}>
+              Are you sure you want to delete "{mrvaEntryToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={cancelDeleteMrvaEntry}
+                onMouseEnter={() => setButtonHover({...buttonHover, cancel: true})}
+                onMouseLeave={() => setButtonHover({...buttonHover, cancel: false})}
+                style={{
+                  ...styles.nameInputButton, 
+                  ...styles.nameInputButtonCancel,
+                  ...(buttonHover.cancel ? styles.nameInputButtonCancelHover : {})
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteMrvaEntry}
                 onMouseEnter={() => setButtonHover({...buttonHover, delete: true})}
                 onMouseLeave={() => setButtonHover({...buttonHover, delete: false})}
                 style={{
@@ -4249,6 +4709,87 @@ function App() {
               <div>
                 <h2 style={styles.cardTitle}>GEO for {currentAirportView.airport.name}</h2>
                 
+                {/* New Entry Form - Always at the top */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>
+                    {editingGeoEntry ? `Edit GEO Entry: ${editingGeoEntry.name}` : 'Add New GEO Entry'}
+                  </h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Name</label>
+                      <input
+                        type="text"
+                        placeholder="Enter name..."
+                        value={geoData.name}
+                        onChange={(e) => handleGeoDataChange('name', e.target.value)}
+                        style={getInputStyle('name')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Coordinates</label>
+                      <textarea
+                        placeholder="Enter input..."
+                        value={geoData.input}
+                        onChange={(e) => handleGeoDataChange('input', e.target.value)}
+                        style={{
+                          ...styles.textarea,
+                          minHeight: '40px',
+                          maxHeight: '400px', // Increased max height for longer content
+                          ...(validationErrors['input'] ? {
+                            border: '2px solid #dc2626',
+                            boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.1), 0 0 0 1px rgba(220, 38, 38, 0.2)',
+                            outline: 'none',
+                          } : {})
+                        }}
+                        rows={1}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            // Allow Enter to create new line, don't prevent default
+                            // Auto-resize the textarea
+                            const textarea = e.target;
+                            textarea.style.height = 'auto';
+                            textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+                          }
+                        }}
+                        onInput={(e) => {
+                          // Auto-resize on input
+                          const textarea = e.target;
+                          textarea.style.height = 'auto';
+                          textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{display: 'flex', gap: '12px'}}>
+                    {editingGeoEntry ? (
+                      <>
+                        <button onClick={handleUpdateGeoEntry} style={styles.button}>
+                          <span className="material-icons">save</span>
+                          Update Entry
+                        </button>
+                        <button 
+                          onClick={handleCancelEdit} 
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#6b7280',
+                            color: 'white'
+                          }}
+                        >
+                          <span className="material-icons">cancel</span>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={handleAddGeoEntry} style={styles.button}>
+                        <span className="material-icons">add</span>
+                        Add Entry
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Search Section */}
                 <div style={styles.card}>
                   <div style={styles.searchContainer}>
@@ -4323,10 +4864,191 @@ function App() {
                   ));
                 })()}
 
-                {/* New Entry Form */}
+                {/* Empty State */}
+                {geoEntries.length === 0 && (
+                  <div style={styles.card}>
+                    <div style={styles.emptyState}>
+                      <p>No GEO entries added yet. Add your first entry above!</p>
+                    </div>
+                  </div>
+                )}
+                {geoEntries.length > 0 && geoEntries.filter(entry => 
+                  entry.name.toLowerCase().includes(geoSearchTerm.toLowerCase()) ||
+                  entry.input.toLowerCase().includes(geoSearchTerm.toLowerCase())
+                ).length === 0 && (
+                  <div style={styles.card}>
+                    <div style={styles.emptyState}>
+                      <p>No GEO entries found matching your search.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentAirportView.type === 'glidepath' && (
+              <div>
+                <h2 style={styles.cardTitle}>GLIDEPATH for {currentAirportView.airport.name}</h2>
+                
+                {/* Input Section */}
                 <div style={styles.card}>
                   <h2 style={styles.cardTitle}>
-                    {editingGeoEntry ? `Edit GEO Entry: ${editingGeoEntry.name}` : 'Add New GEO Entry'}
+                    {editingGlidepathEntry ? `Edit GLIDEPATH Entry: ${editingGlidepathEntry.rwy}` : 'Add New GLIDEPATH Entry'}
+                  </h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>RWY</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 01L"
+                        value={glidepathData.rwy}
+                        onChange={(e) => handleGlidepathDataChange('rwy', e.target.value)}
+                        style={getInputStyle('rwy')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>ANGLE</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 3.0"
+                        value={glidepathData.angle}
+                        onChange={(e) => handleGlidepathDataChange('angle', e.target.value)}
+                        style={getInputStyle('angle')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>LENGTH (M)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 3000"
+                        value={glidepathData.length}
+                        onChange={(e) => handleGlidepathDataChange('length', e.target.value)}
+                        style={getInputStyle('length')}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{display: 'flex', gap: '12px'}}>
+                    {editingGlidepathEntry ? (
+                      <>
+                        <button onClick={handleUpdateGlidepathEntry} style={styles.button}>
+                          <span className="material-icons">save</span>
+                          Update Entry
+                        </button>
+                        <button 
+                          onClick={handleCancelEditGlidepath} 
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#6b7280',
+                            color: 'white'
+                          }}
+                        >
+                          <span className="material-icons">cancel</span>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={handleAddGlidepathEntry} style={styles.button}>
+                        <span className="material-icons">add</span>
+                        Add Entry
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                    <h2 style={styles.cardTitle}>GLIDEPATH Entries</h2>
+                    <div style={styles.searchContainer}>
+                      <span className="material-icons" style={styles.searchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search by RWY, Angle, or Length..."
+                        value={glidepathSearchTerm}
+                        onChange={(e) => setGlidepathSearchTerm(e.target.value)}
+                        style={styles.searchInput}
+                      />
+                    </div>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>RWY</th>
+                          <th style={styles.tableCell}>ANGLE</th>
+                          <th style={styles.tableCell}>LENGTH (M)</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const filteredGlidepathEntries = glidepathEntries.filter(entry => 
+                            entry.rwy.toLowerCase().includes(glidepathSearchTerm.toLowerCase()) ||
+                            entry.angle.toLowerCase().includes(glidepathSearchTerm.toLowerCase()) ||
+                            entry.length.toLowerCase().includes(glidepathSearchTerm.toLowerCase())
+                          );
+                          
+                          return filteredGlidepathEntries.map((entry) => (
+                            <tr key={entry.id} style={styles.tableRow}>
+                              <td style={styles.tableCell}>{entry.rwy}</td>
+                              <td style={styles.tableCell}>{entry.angle}</td>
+                              <td style={styles.tableCell}>{entry.length}</td>
+                              <td style={styles.tableCell}>
+                                <div style={{display: 'flex', gap: '8px'}}>
+                                  <button
+                                    onClick={() => handleEditGlidepathEntry(entry)}
+                                    style={{
+                                      ...styles.deleteButton,
+                                      backgroundColor: '#3b82f6',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteGlidepathEntry(entry.id)}
+                                    style={styles.deleteButton}
+                                  >
+                                    <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                  {glidepathEntries.length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No GLIDEPATH entries added yet. Add your first entry above!</p>
+                    </div>
+                  )}
+                  {glidepathEntries.length > 0 && glidepathEntries.filter(entry => 
+                    entry.rwy.toLowerCase().includes(glidepathSearchTerm.toLowerCase()) ||
+                    entry.angle.toLowerCase().includes(glidepathSearchTerm.toLowerCase()) ||
+                    entry.length.toLowerCase().includes(glidepathSearchTerm.toLowerCase())
+                  ).length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No GLIDEPATH entries found matching your search.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentAirportView.type === 'mrva' && (
+              <div>
+                <h2 style={styles.cardTitle}>MRVA for {currentAirportView.airport.name}</h2>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>
+                    {editingMrvaEntry ? `Edit MRVA Entry: ${editingMrvaEntry.name}` : 'Add New MRVA Entry'}
                   </h2>
                   <div style={styles.grid}>
                     <div style={styles.inputGroup}>
@@ -4334,23 +5056,23 @@ function App() {
                       <input
                         type="text"
                         placeholder="Enter name..."
-                        value={geoData.name}
-                        onChange={(e) => handleGeoDataChange('name', e.target.value)}
+                        value={mrvaData.name}
+                        onChange={(e) => handleMrvaDataChange('name', e.target.value)}
                         style={getInputStyle('name')}
                       />
                     </div>
                     
                     <div style={styles.inputGroup}>
-                      <label style={styles.label}>Input</label>
+                      <label style={styles.label}>Coordinates</label>
                       <textarea
-                        placeholder="Enter input..."
-                        value={geoData.input}
-                        onChange={(e) => handleGeoDataChange('input', e.target.value)}
+                        placeholder="Enter coordinates..."
+                        value={mrvaData.coordinates}
+                        onChange={(e) => handleMrvaDataChange('coordinates', e.target.value)}
                         style={{
                           ...styles.textarea,
                           minHeight: '40px',
-                          maxHeight: '400px', // Increased max height for longer content
-                          ...(validationErrors['input'] ? {
+                          maxHeight: '400px',
+                          ...(validationErrors['coordinates'] ? {
                             border: '2px solid #dc2626',
                             boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.1), 0 0 0 1px rgba(220, 38, 38, 0.2)',
                             outline: 'none',
@@ -4374,17 +5096,39 @@ function App() {
                         }}
                       />
                     </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Altitude</label>
+                      <input
+                        type="text"
+                        placeholder="Enter altitude..."
+                        value={mrvaData.altitude}
+                        onChange={(e) => handleMrvaDataChange('altitude', e.target.value)}
+                        style={getInputStyle('altitude')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Label Coordinate</label>
+                      <input
+                        type="text"
+                        placeholder="Enter label coordinate..."
+                        value={mrvaData.labelCoordinate}
+                        onChange={(e) => handleMrvaDataChange('labelCoordinate', e.target.value)}
+                        style={getInputStyle('labelCoordinate')}
+                      />
+                    </div>
                   </div>
                   
                   <div style={{display: 'flex', gap: '12px'}}>
-                    {editingGeoEntry ? (
+                    {editingMrvaEntry ? (
                       <>
-                        <button onClick={handleUpdateGeoEntry} style={styles.button}>
+                        <button onClick={handleUpdateMrvaEntry} style={styles.button}>
                           <span className="material-icons">save</span>
                           Update Entry
                         </button>
                         <button 
-                          onClick={handleCancelEdit} 
+                          onClick={handleCancelEditMrva} 
                           style={{
                             ...styles.button,
                             backgroundColor: '#6b7280',
@@ -4396,7 +5140,7 @@ function App() {
                         </button>
                       </>
                     ) : (
-                      <button onClick={handleAddGeoEntry} style={styles.button}>
+                      <button onClick={handleAddMrvaEntry} style={styles.button}>
                         <span className="material-icons">add</span>
                         Add Entry
                       </button>
@@ -4404,31 +5148,130 @@ function App() {
                   </div>
                 </div>
 
-                {/* Empty State */}
-                {geoEntries.length === 0 && (
-                  <div style={styles.card}>
-                    <div style={styles.emptyState}>
-                      <p>No GEO entries added yet. Add your first entry above!</p>
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                    <h2 style={styles.cardTitle}>MRVA Entries</h2>
+                    <div style={styles.searchContainer}>
+                      <span className="material-icons" style={styles.searchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search by Name, Coordinates, Altitude, or Label Coordinate..."
+                        value={mrvaSearchTerm}
+                        onChange={(e) => setMrvaSearchTerm(e.target.value)}
+                        style={styles.searchInput}
+                      />
                     </div>
                   </div>
-                )}
-                {geoEntries.length > 0 && geoEntries.filter(entry => 
-                  entry.name.toLowerCase().includes(geoSearchTerm.toLowerCase()) ||
-                  entry.input.toLowerCase().includes(geoSearchTerm.toLowerCase())
-                ).length === 0 && (
-                  <div style={styles.card}>
-                    <div style={styles.emptyState}>
-                      <p>No GEO entries found matching your search.</p>
-                    </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>Name</th>
+                          <th style={styles.tableCell}>Coordinates</th>
+                          <th style={styles.tableCell}>Altitude</th>
+                          <th style={styles.tableCell}>Label Coordinate</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const filteredMrvaEntries = mrvaEntries.filter(entry => 
+                            entry.name.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                            entry.coordinates.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                            entry.altitude.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                            entry.labelCoordinate.toLowerCase().includes(mrvaSearchTerm.toLowerCase())
+                          );
+                          
+                          return filteredMrvaEntries.map((entry) => (
+                            <tr key={entry.id} style={styles.tableRow}>
+                              <td style={styles.tableCell}>{entry.name}</td>
+                              <td style={styles.tableCell}>
+                                <textarea
+                                  value={entry.coordinates}
+                                  readOnly
+                                  style={{
+                                    padding: '8px',
+                                    backgroundColor: 'white',
+                                    border: 'none',
+                                    whiteSpace: 'pre-wrap',
+                                    wordWrap: 'break-word',
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontSize: '14px',
+                                    lineHeight: '1.5',
+                                    height: '200px',
+                                    overflowY: 'auto',
+                                    overflowX: 'hidden',
+                                    resize: 'none',
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    cursor: 'default',
+                                    outline: 'none'
+                                  }}
+                                />
+                              </td>
+                              <td style={styles.tableCell}>
+                                <div style={{
+                                  maxWidth: '150px',
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'pre-wrap'
+                                }}>
+                                  {entry.altitude}
+                                </div>
+                              </td>
+                              <td style={styles.tableCell}>
+                                <div style={{
+                                  maxWidth: '200px',
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'pre-wrap'
+                                }}>
+                                  {entry.labelCoordinate}
+                                </div>
+                              </td>
+                              <td style={styles.tableCell}>
+                                <div style={{display: 'flex', gap: '8px'}}>
+                                  <button
+                                    onClick={() => handleEditMrvaEntry(entry)}
+                                    style={{
+                                      ...styles.deleteButton,
+                                      backgroundColor: '#3b82f6',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMrvaEntry(entry)}
+                                    style={styles.deleteButton}
+                                  >
+                                    <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
-            )}
-
-            {currentAirportView.type === 'mrva' && (
-              <div>
-                <h2 style={styles.cardTitle}>MRVA for {currentAirportView.airport.name}</h2>
-                <p>MRVA content coming soon...</p>
+                  {mrvaEntries.length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No MRVA entries added yet. Add your first entry above!</p>
+                    </div>
+                  )}
+                  {mrvaEntries.length > 0 && mrvaEntries.filter(entry => 
+                    entry.name.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                    entry.coordinates.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                    entry.altitude.toLowerCase().includes(mrvaSearchTerm.toLowerCase()) ||
+                    entry.labelCoordinate.toLowerCase().includes(mrvaSearchTerm.toLowerCase())
+                  ).length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No MRVA entries found matching your search.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
