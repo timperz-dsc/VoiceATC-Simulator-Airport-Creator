@@ -147,6 +147,20 @@ function App() {
   const [showConfirmDeleteHolds, setShowConfirmDeleteHolds] = useState(false);
   const [holdsEntryToDelete, setHoldsEntryToDelete] = useState(null);
 
+  // VOR data state
+  const [vorData, setVorData] = useState({
+    name: '',
+    frequency: '',
+    coordinate: '',
+    visibilityFix: '',
+    visibilityLabel: '',
+  });
+  
+  const [vorEntries, setVorEntries] = useState([]);
+  const [editingVorEntry, setEditingVorEntry] = useState(null);
+  const [showConfirmDeleteVor, setShowConfirmDeleteVor] = useState(false);
+  const [vorEntryToDelete, setVorEntryToDelete] = useState(null);
+
   // Load routes from localStorage on component mount
   useEffect(() => {
     try {
@@ -1396,6 +1410,121 @@ function App() {
       direction: '',
       timeDistance: '',
       colour: '',
+    });
+    setValidationErrors({});
+  };
+
+  // VOR data handling functions
+  const handleVorDataChange = (field, value) => {
+    setVorData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddVorEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'frequency', 'coordinate', 'visibilityFix', 'visibilityLabel'];
+    const emptyFields = requiredFields.filter(field => !vorData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    const newVorEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: vorData.name,
+      frequency: vorData.frequency,
+      coordinate: vorData.coordinate,
+      visibilityFix: vorData.visibilityFix,
+      visibilityLabel: vorData.visibilityLabel,
+      createdAt: new Date().toISOString()
+    };
+
+    setVorEntries(prev => [...prev, newVorEntry]);
+    
+    // Clear form
+    setVorData({
+      name: '',
+      frequency: '',
+      coordinate: '',
+      visibilityFix: '',
+      visibilityLabel: '',
+    });
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Show success notification
+    showNotification('VOR entry added successfully!', 'success');
+  };
+
+  const handleDeleteVorEntry = (id) => {
+    setVorEntries(prev => prev.filter(entry => entry.id !== id));
+    showNotification('VOR entry deleted successfully!', 'success');
+  };
+
+  const handleEditVorEntry = (entry) => {
+    setEditingVorEntry(entry);
+    setVorData({
+      name: entry.name,
+      frequency: entry.frequency,
+      coordinate: entry.coordinate,
+      visibilityFix: entry.visibilityFix,
+      visibilityLabel: entry.visibilityLabel,
+    });
+  };
+
+  const handleUpdateVorEntry = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['name', 'frequency', 'coordinate', 'visibilityFix', 'visibilityLabel'];
+    const emptyFields = requiredFields.filter(field => !vorData[field]);
+    
+    if (emptyFields.length > 0) {
+      // Set validation errors for empty fields
+      const errors = {};
+      emptyFields.forEach(field => {
+        errors[field] = true;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Update the entry
+    setVorEntries(prev => prev.map(entry => 
+      entry.id === editingVorEntry.id 
+        ? { ...entry, name: vorData.name, frequency: vorData.frequency, coordinate: vorData.coordinate, visibilityFix: vorData.visibilityFix, visibilityLabel: vorData.visibilityLabel }
+        : entry
+    ));
+    
+    // Clear form and editing state
+    setVorData({
+      name: '',
+      frequency: '',
+      coordinate: '',
+      visibilityFix: '',
+      visibilityLabel: '',
+    });
+    setEditingVorEntry(null);
+    
+    // Clear validation errors
+    setValidationErrors({});
+    
+    // Show success notification
+    showNotification('VOR entry updated successfully!', 'success');
+  };
+
+  const handleCancelEditVor = () => {
+    setEditingVorEntry(null);
+    setVorData({
+      name: '',
+      frequency: '',
+      coordinate: '',
+      visibilityFix: '',
+      visibilityLabel: '',
     });
     setValidationErrors({});
   };
@@ -3076,6 +3205,13 @@ function App() {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           console.log(`VOR clicked for NAVAIDS ${getConfigName('1')}`, airport.name);
+                                          // Toggle the view
+                                          if (currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id) {
+                                            setCurrentAirportView(null);
+                                          } else {
+                                            setCurrentAirportView({ type: 'vor', airport: airport });
+                                            setCurrentView('airport-view');
+                                          }
                                           // Close all dropdowns
                                           setShowAirportsDropdown(false);
                                           setClickedAirport(null);
@@ -3088,7 +3224,10 @@ function App() {
                                           setActiveFourthLevelDropdown(null);
                                         }}
                                       >
-                                        VOR
+                                        <span>VOR</span>
+                                        {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                          <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -3373,6 +3512,13 @@ function App() {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           console.log(`VOR clicked for NAVAIDS ${getConfigName('2')}`, airport.name);
+                                          // Toggle the view
+                                          if (currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id) {
+                                            setCurrentAirportView(null);
+                                          } else {
+                                            setCurrentAirportView({ type: 'vor', airport: airport });
+                                            setCurrentView('airport-view');
+                                          }
                                           // Close all dropdowns
                                           setShowAirportsDropdown(false);
                                           setClickedAirport(null);
@@ -3385,7 +3531,10 @@ function App() {
                                           setActiveFourthLevelDropdown(null);
                                         }}
                                       >
-                                        VOR
+                                        <span>VOR</span>
+                                        {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                          <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -3680,6 +3829,13 @@ function App() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 console.log(`VOR clicked for NAVAIDS ${config.name}`, airport.name);
+                                                // Toggle the view
+                                                if (currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id) {
+                                                  setCurrentAirportView(null);
+                                                } else {
+                                                  setCurrentAirportView({ type: 'vor', airport: airport });
+                                                  setCurrentView('airport-view');
+                                                }
                                                 // Close all dropdowns
                                                 setShowAirportsDropdown(false);
                                                 setClickedAirport(null);
@@ -3693,7 +3849,10 @@ function App() {
                                                 setOpenConfigDropdowns({});
                                               }}
                                             >
-                                              VOR
+                                              <span>VOR</span>
+                                              {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                                <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                              )}
                                             </div>
                                           </div>
                                         )}
@@ -5700,6 +5859,161 @@ N051.19.52.000;E003.10.47.000;N051.20.29.000;E003.11.02.000;COAST;"
                   {holdsEntries.length === 0 && (
                     <div style={styles.emptyState}>
                       <p>No HOLDS entries added yet. Add your first entry above!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentAirportView.type === 'vor' && (
+              <div>
+                <h2 style={styles.cardTitle}>VOR for {currentAirportView.airport.name}</h2>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>
+                    {editingVorEntry ? `Edit VOR Entry: ${editingVorEntry.name}` : 'Add New VOR Entry'}
+                  </h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Name</label>
+                      <input
+                        type="text"
+                        placeholder="ESSA01"
+                        value={vorData.name}
+                        onChange={(e) => handleVorDataChange('name', e.target.value)}
+                        style={getInputStyle('name')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Frequency</label>
+                      <input
+                        type="text"
+                        placeholder="118.0"
+                        value={vorData.frequency}
+                        onChange={(e) => handleVorDataChange('frequency', e.target.value)}
+                        style={getInputStyle('frequency')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Coordinate</label>
+                      <input
+                        type="text"
+                        placeholder="N054.07.23.243 E018.07.24.276"
+                        value={vorData.coordinate}
+                        onChange={(e) => handleVorDataChange('coordinate', e.target.value)}
+                        style={getInputStyle('coordinate')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Visibility Fix (1 or 2)</label>
+                      <input
+                        type="text"
+                        placeholder="1"
+                        value={vorData.visibilityFix}
+                        onChange={(e) => handleVorDataChange('visibilityFix', e.target.value)}
+                        style={getInputStyle('visibilityFix')}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Visibility Label (1 or 2)</label>
+                      <input
+                        type="text"
+                        placeholder="2"
+                        value={vorData.visibilityLabel}
+                        onChange={(e) => handleVorDataChange('visibilityLabel', e.target.value)}
+                        style={getInputStyle('visibilityLabel')}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{display: 'flex', gap: '12px'}}>
+                    {editingVorEntry ? (
+                      <>
+                        <button onClick={handleUpdateVorEntry} style={styles.button}>
+                          <span className="material-icons">save</span>
+                          Update Entry
+                        </button>
+                        <button 
+                          onClick={handleCancelEditVor} 
+                          style={{
+                            ...styles.button,
+                            backgroundColor: '#6b7280',
+                            color: 'white'
+                          }}
+                        >
+                          <span className="material-icons">cancel</span>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={handleAddVorEntry} style={styles.button}>
+                        <span className="material-icons">add</span>
+                        Add Entry
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{marginBottom: '24px'}}>
+                    <h2 style={styles.cardTitle}>VOR Entries</h2>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>Name</th>
+                          <th style={styles.tableCell}>Frequency</th>
+                          <th style={styles.tableCell}>Coordinate</th>
+                          <th style={styles.tableCell}>Visibility Fix</th>
+                          <th style={styles.tableCell}>Visibility Label</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vorEntries.map((entry) => (
+                          <tr key={entry.id} style={styles.tableRow}>
+                            <td style={styles.tableCell}>{entry.name}</td>
+                            <td style={styles.tableCell}>{entry.frequency}</td>
+                            <td style={styles.tableCell}>{entry.coordinate}</td>
+                            <td style={styles.tableCell}>{entry.visibilityFix}</td>
+                            <td style={styles.tableCell}>{entry.visibilityLabel}</td>
+                            <td style={styles.tableCell}>
+                              <div style={{display: 'flex', gap: '8px'}}>
+                                <button
+                                  onClick={() => handleEditVorEntry(entry)}
+                                  style={{
+                                    ...styles.deleteButton,
+                                    backgroundColor: '#3b82f6',
+                                    color: 'white'
+                                  }}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteVorEntry(entry.id)}
+                                  style={styles.deleteButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {vorEntries.length === 0 && (
+                    <div style={styles.emptyState}>
+                      <p>No VOR entries added yet. Add your first entry above!</p>
                     </div>
                   )}
                 </div>
