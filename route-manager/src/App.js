@@ -147,6 +147,34 @@ function App() {
   const [showConfirmDeleteHolds, setShowConfirmDeleteHolds] = useState(false);
   const [holdsEntryToDelete, setHoldsEntryToDelete] = useState(null);
 
+  // SECTORS data state
+  const [sectorsData, setSectorsData] = useState({
+    abbreviation: '',
+    name: '',
+    coordinates: '',
+    colour: '',
+  });
+  
+  const [sectors, setSectors] = useState([]);
+  const [sectorsSearchTerm, setSectorsSearchTerm] = useState('');
+  const [editingSector, setEditingSector] = useState(null);
+  const [showConfirmDeleteSector, setShowConfirmDeleteSector] = useState(false);
+  const [sectorToDelete, setSectorToDelete] = useState(null);
+
+  // PRONUNCIATION data state
+  const [pronunciationData, setPronunciationData] = useState({
+    fix: '',
+    pronunciation1: '',
+    pronunciation2: '',
+    pronunciation3: '',
+  });
+  
+  const [pronunciations, setPronunciations] = useState([]);
+  const [pronunciationSearchTerm, setPronunciationSearchTerm] = useState('');
+  const [editingPronunciation, setEditingPronunciation] = useState(null);
+  const [showConfirmDeletePronunciation, setShowConfirmDeletePronunciation] = useState(false);
+  const [pronunciationToDelete, setPronunciationToDelete] = useState(null);
+
   // VOR data state
   const [vorData, setVorData] = useState({
     name: '',
@@ -520,6 +548,98 @@ function App() {
     }
   }, [holdsEntries]);
 
+  // Load SECTORS from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedSectors = localStorage.getItem('sectors');
+      if (savedSectors && savedSectors !== '[]' && savedSectors !== 'null') {
+        const parsedSectors = JSON.parse(savedSectors);
+        if (Array.isArray(parsedSectors) && parsedSectors.length > 0) {
+          setSectors(parsedSectors);
+          console.log('Loaded SECTORS from localStorage:', parsedSectors);
+        } else {
+          console.log('Parsed data is not a valid SECTORS array, using empty array');
+          setSectors([]);
+        }
+      } else {
+        console.log('No valid saved SECTORS found in localStorage');
+        setSectors([]);
+      }
+    } catch (error) {
+      console.error('Error loading SECTORS from localStorage:', error);
+      setSectors([]);
+    }
+  }, []);
+
+  // Save SECTORS to localStorage whenever sectors change
+  useEffect(() => {
+    // Skip saving during initial load
+    if (sectors.length === 0) {
+      console.log('Skipping save - SECTORS array is empty (likely initial load)');
+      return;
+    }
+    
+    try {
+      // Only save if there are actually SECTORS
+      if (sectors && sectors.length > 0) {
+        localStorage.setItem('sectors', JSON.stringify(sectors));
+        console.log('Saved SECTORS to localStorage:', sectors);
+      } else {
+        // Remove the key if no SECTORS
+        localStorage.removeItem('sectors');
+        console.log('Removed SECTORS from localStorage (no SECTORS)');
+      }
+    } catch (error) {
+      console.error('Error saving SECTORS to localStorage:', error);
+    }
+  }, [sectors]);
+
+  // Load PRONUNCIATIONS from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedPronunciations = localStorage.getItem('pronunciations');
+      if (savedPronunciations && savedPronunciations !== '[]' && savedPronunciations !== 'null') {
+        const parsedPronunciations = JSON.parse(savedPronunciations);
+        if (Array.isArray(parsedPronunciations) && parsedPronunciations.length > 0) {
+          setPronunciations(parsedPronunciations);
+          console.log('Loaded PRONUNCIATIONS from localStorage:', parsedPronunciations);
+        } else {
+          console.log('Parsed data is not a valid PRONUNCIATIONS array, using empty array');
+          setPronunciations([]);
+        }
+      } else {
+        console.log('No valid saved PRONUNCIATIONS found in localStorage');
+        setPronunciations([]);
+      }
+    } catch (error) {
+      console.error('Error loading PRONUNCIATIONS from localStorage:', error);
+      setPronunciations([]);
+    }
+  }, []);
+
+  // Save PRONUNCIATIONS to localStorage whenever pronunciations change
+  useEffect(() => {
+    // Skip saving during initial load
+    if (pronunciations.length === 0) {
+      console.log('Skipping save - PRONUNCIATIONS array is empty (likely initial load)');
+      return;
+    }
+    
+    try {
+      // Only save if there are actually PRONUNCIATIONS
+      if (pronunciations && pronunciations.length > 0) {
+        localStorage.setItem('pronunciations', JSON.stringify(pronunciations));
+        console.log('Saved PRONUNCIATIONS to localStorage:', pronunciations);
+      } else {
+        // Remove the key if no PRONUNCIATIONS
+        localStorage.removeItem('pronunciations');
+        console.log('Removed PRONUNCIATIONS from localStorage (no PRONUNCIATIONS)');
+      }
+    } catch (error) {
+      console.error('Error saving PRONUNCIATIONS to localStorage:', error);
+    }
+  }, [pronunciations]);
+
   // Load info data from localStorage on component mount
   useEffect(() => {
     try {
@@ -562,9 +682,11 @@ function App() {
       geoEntries,
       mrvaEntries,
       glidepathEntries,
-      holdsEntries
+      holdsEntries,
+      sectors,
+      pronunciations
     });
-  }, [airports, routes, runways, configs, geoEntries, mrvaEntries, glidepathEntries]);
+  }, [airports, routes, runways, configs, geoEntries, mrvaEntries, glidepathEntries, sectors, pronunciations]);
 
   // Validation functions
   const validateAirlines = (value) => {
@@ -600,6 +722,8 @@ function App() {
     console.log('mrvaEntries:', localStorage.getItem('mrvaEntries'));
     console.log('glidepathEntries:', localStorage.getItem('glidepathEntries'));
     console.log('holdsEntries:', localStorage.getItem('holdsEntries'));
+    console.log('sectors:', localStorage.getItem('sectors'));
+    console.log('pronunciations:', localStorage.getItem('pronunciations'));
     console.log('Current state airports:', airports);
     console.log('Current state routes:', routes);
     console.log('Current state runways:', runways);
@@ -609,6 +733,8 @@ function App() {
     console.log('Current state mrvaEntries:', mrvaEntries);
     console.log('Current state glidepathEntries:', glidepathEntries);
     console.log('Current state holdsEntries:', holdsEntries);
+    console.log('Current state sectors:', sectors);
+    console.log('Current state pronunciations:', pronunciations);
     console.log('========================');
   };
 
@@ -1599,6 +1725,160 @@ function App() {
     setRoutes(prev => prev.filter(route => route.id !== id));
   };
 
+  // SECTORS data handling functions
+  const handleSectorsDataChange = (field, value) => {
+    setSectorsData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddSector = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['abbreviation', 'name', 'coordinates', 'colour'];
+    const emptyFields = requiredFields.filter(field => !sectorsData[field]);
+    
+    if (emptyFields.length > 0) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const newSector = {
+      id: Math.random().toString(36).substr(2, 9),
+      abbreviation: sectorsData.abbreviation,
+      name: sectorsData.name,
+      coordinates: sectorsData.coordinates,
+      colour: sectorsData.colour,
+      createdAt: new Date().toISOString(),
+    };
+
+    setSectors(prev => [newSector, ...prev]);
+    
+    setSectorsData({
+      abbreviation: '',
+      name: '',
+      coordinates: '',
+      colour: '',
+    });
+  };
+
+  const handleDeleteSector = (id) => {
+    setSectors(prev => prev.filter(sector => sector.id !== id));
+  };
+
+  const handleEditSector = (sector) => {
+    setEditingSector(sector);
+    setSectorsData({
+      abbreviation: sector.abbreviation,
+      name: sector.name,
+      coordinates: sector.coordinates,
+      colour: sector.colour,
+    });
+  };
+
+  const handleUpdateSector = () => {
+    if (!editingSector) return;
+
+    const updatedSectors = sectors.map(sector => 
+      sector.id === editingSector.id 
+        ? { ...sector, ...sectorsData }
+        : sector
+    );
+    
+    setSectors(updatedSectors);
+    setEditingSector(null);
+    setSectorsData({
+      abbreviation: '',
+      name: '',
+      coordinates: '',
+      colour: '',
+    });
+  };
+
+  const handleCancelEditSector = () => {
+    setEditingSector(null);
+    setSectorsData({
+      abbreviation: '',
+      name: '',
+      coordinates: '',
+      colour: '',
+    });
+  };
+
+  // PRONUNCIATION data handling functions
+  const handlePronunciationDataChange = (field, value) => {
+    setPronunciationData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddPronunciation = () => {
+    // Check if all required fields are filled
+    const requiredFields = ['fix', 'pronunciation1', 'pronunciation2', 'pronunciation3'];
+    const emptyFields = requiredFields.filter(field => !pronunciationData[field]);
+    
+    if (emptyFields.length > 0) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const newPronunciation = {
+      id: Math.random().toString(36).substr(2, 9),
+      fix: pronunciationData.fix,
+      pronunciation1: pronunciationData.pronunciation1,
+      pronunciation2: pronunciationData.pronunciation2,
+      pronunciation3: pronunciationData.pronunciation3,
+      createdAt: new Date().toISOString(),
+    };
+
+    setPronunciations(prev => [newPronunciation, ...prev]);
+    
+    setPronunciationData({
+      fix: '',
+      pronunciation1: '',
+      pronunciation2: '',
+      pronunciation3: '',
+    });
+  };
+
+  const handleDeletePronunciation = (id) => {
+    setPronunciations(prev => prev.filter(pronunciation => pronunciation.id !== id));
+  };
+
+  const handleEditPronunciation = (pronunciation) => {
+    setEditingPronunciation(pronunciation);
+    setPronunciationData({
+      fix: pronunciation.fix,
+      pronunciation1: pronunciation.pronunciation1,
+      pronunciation2: pronunciation.pronunciation2,
+      pronunciation3: pronunciation.pronunciation3,
+    });
+  };
+
+  const handleUpdatePronunciation = () => {
+    if (!editingPronunciation) return;
+
+    const updatedPronunciations = pronunciations.map(pronunciation => 
+      pronunciation.id === editingPronunciation.id 
+        ? { ...pronunciation, ...pronunciationData }
+        : pronunciation
+    );
+    
+    setPronunciations(updatedPronunciations);
+    setEditingPronunciation(null);
+    setPronunciationData({
+      fix: '',
+      pronunciation1: '',
+      pronunciation2: '',
+      pronunciation3: '',
+    });
+  };
+
+  const handleCancelEditPronunciation = () => {
+    setEditingPronunciation(null);
+    setPronunciationData({
+      fix: '',
+      pronunciation1: '',
+      pronunciation2: '',
+      pronunciation3: '',
+    });
+  };
+
   const handleNavigation = (view) => {
     if (currentView === view) return;
     
@@ -2022,6 +2302,20 @@ function App() {
     route.acft.toLowerCase().includes(searchTerm.toLowerCase())
   ));
 
+  const filteredSectors = sectors.filter(sector =>
+    sector.abbreviation.toLowerCase().includes(sectorsSearchTerm.toLowerCase()) ||
+    sector.name.toLowerCase().includes(sectorsSearchTerm.toLowerCase()) ||
+    sector.coordinates.toLowerCase().includes(sectorsSearchTerm.toLowerCase()) ||
+    sector.colour.toLowerCase().includes(sectorsSearchTerm.toLowerCase())
+  );
+
+  const filteredPronunciations = pronunciations.filter(pronunciation =>
+    pronunciation.fix.toLowerCase().includes(pronunciationSearchTerm.toLowerCase()) ||
+    pronunciation.pronunciation1.toLowerCase().includes(pronunciationSearchTerm.toLowerCase()) ||
+    pronunciation.pronunciation2.toLowerCase().includes(pronunciationSearchTerm.toLowerCase()) ||
+    pronunciation.pronunciation3.toLowerCase().includes(pronunciationSearchTerm.toLowerCase())
+  );
+
   const getInputStyle = (fieldName) => {
     const baseStyle = {
       padding: '10px 12px',
@@ -2260,6 +2554,20 @@ function App() {
     },
     deleteButton: {
       backgroundColor: '#dc2626',
+      color: 'white',
+      padding: '6px 12px',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '12px',
+      cursor: 'pointer',
+      fontFamily: 'Inter, sans-serif',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      whiteSpace: 'nowrap',
+    },
+    editButton: {
+      backgroundColor: '#0B1E39',
       color: 'white',
       padding: '6px 12px',
       border: 'none',
@@ -3109,6 +3417,13 @@ function App() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     console.log(`SECTORS clicked for ${getConfigName('1')}`, airport.name);
+                                    // Toggle the view
+                                    if (currentAirportView && currentAirportView.type === 'sectors' && currentAirportView.airport.id === airport.id) {
+                                      setCurrentAirportView(null);
+                                    } else {
+                                      setCurrentAirportView({ type: 'sectors', airport: airport });
+                                      setCurrentView('airport-view');
+                                    }
                                     // Close all dropdowns
                                     setShowAirportsDropdown(false);
                                     setClickedAirport(null);
@@ -3121,7 +3436,10 @@ function App() {
                                     setActiveFourthLevelDropdown(null);
                                   }}
                                 >
-                                  SECTORS
+                                  <span>SECTORS</span>
+                                  {currentAirportView && currentAirportView.type === 'sectors' && currentAirportView.airport.id === airport.id && (
+                                    <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                  )}
                                 </div>
                                 <div 
                                   style={styles.navSubDropdownItem}
@@ -3226,6 +3544,37 @@ function App() {
                                       >
                                         <span>VOR</span>
                                         {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                          <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                        )}
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`PRONUNCIATION clicked for NAVAIDS ${getConfigName('1')}`, airport.name);
+                                          // Toggle the view
+                                          if (currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id) {
+                                            setCurrentAirportView(null);
+                                          } else {
+                                            setCurrentAirportView({ type: 'pronunciation', airport: airport });
+                                            setCurrentView('airport-view');
+                                          }
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        <span>PRONUNCIATION</span>
+                                        {currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id && (
                                           <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
                                         )}
                                       </div>
@@ -3533,6 +3882,37 @@ function App() {
                                       >
                                         <span>VOR</span>
                                         {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                          <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                        )}
+                                      </div>
+                                      <div 
+                                        style={styles.navSubDropdownItem}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          console.log(`PRONUNCIATION clicked for NAVAIDS ${getConfigName('2')}`, airport.name);
+                                          // Toggle the view
+                                          if (currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id) {
+                                            setCurrentAirportView(null);
+                                          } else {
+                                            setCurrentAirportView({ type: 'pronunciation', airport: airport });
+                                            setCurrentView('airport-view');
+                                          }
+                                          // Close all dropdowns
+                                          setShowAirportsDropdown(false);
+                                          setClickedAirport(null);
+                                          setShowGeneralFilesDropdown(null);
+                                          setShowConfig1Dropdown(null);
+                                          setShowConfig2Dropdown(null);
+                                          setShowNavAidsDropdown(null);
+                                          setShowProcsDropdown(null);
+                                          setShowTrafficView(null);
+                                          setActiveFourthLevelDropdown(null);
+                                        }}
+                                      >
+                                        <span>PRONUNCIATION</span>
+                                        {currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id && (
                                           <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
                                         )}
                                       </div>
@@ -3851,6 +4231,38 @@ function App() {
                                             >
                                               <span>VOR</span>
                                               {currentAirportView && currentAirportView.type === 'vor' && currentAirportView.airport.id === airport.id && (
+                                                <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
+                                              )}
+                                            </div>
+                                            <div 
+                                              style={styles.navSubDropdownItem}
+                                              onMouseEnter={(e) => e.target.style.backgroundColor = styles.navSubDropdownItemHover.backgroundColor}
+                                              onMouseLeave={(e) => e.target.style.backgroundColor = ''}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                console.log(`PRONUNCIATION clicked for NAVAIDS ${config.name}`, airport.name);
+                                                // Toggle the view
+                                                if (currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id) {
+                                                  setCurrentAirportView(null);
+                                                } else {
+                                                  setCurrentAirportView({ type: 'pronunciation', airport: airport });
+                                                  setCurrentView('airport-view');
+                                                }
+                                                // Close all dropdowns
+                                                setShowAirportsDropdown(false);
+                                                setClickedAirport(null);
+                                                setShowGeneralFilesDropdown(null);
+                                                setShowConfig1Dropdown(null);
+                                                setShowConfig2Dropdown(null);
+                                                setShowNavAidsDropdown(null);
+                                                setShowProcsDropdown(null);
+                                                setShowTrafficView(null);
+                                                setActiveFourthLevelDropdown(null);
+                                                setOpenConfigDropdowns({});
+                                              }}
+                                            >
+                                              <span>PRONUNCIATION</span>
+                                              {currentAirportView && currentAirportView.type === 'pronunciation' && currentAirportView.airport.id === airport.id && (
                                                 <span className="material-icons" style={{color: '#10b981', fontSize: '18px'}}>check</span>
                                               )}
                                             </div>
@@ -4494,7 +4906,7 @@ function App() {
                   <label style={styles.label}>Aircraft</label>
                   <input
                     type="text"
-                    placeholder="e.g., A320, B738"
+                    placeholder="A320, B738"
                     value={formData.acft}
                     onChange={(e) => handleInputChange('acft', e.target.value)}
                     style={getInputStyle('acft')}
@@ -4576,7 +4988,7 @@ function App() {
                   <label style={styles.label}>FL Bottom</label>
                   <input
                     type="text"
-                    placeholder="e.g., 100"
+                    placeholder="100"
                     value={formData.flBottom}
                     onChange={(e) => handleInputChange('flBottom', e.target.value)}
                     style={getInputStyle('flBottom')}
@@ -4587,7 +4999,7 @@ function App() {
                   <label style={styles.label}>FL Top</label>
                   <input
                     type="text"
-                    placeholder="e.g., 430"
+                    placeholder="430"
                     value={formData.flTop}
                     onChange={(e) => handleInputChange('flTop', e.target.value)}
                     style={getInputStyle('flTop')}
@@ -4823,6 +5235,297 @@ function App() {
           </div>
         )}
 
+            {currentAirportView.type === 'sectors' && (
+              <div>
+                <h2 style={styles.cardTitle}>Sectors Management for {currentAirportView.airport.name}</h2>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>Add New Sector</h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Sector Abbreviation</label>
+                      <input
+                        type="text"
+                        placeholder=" STO"
+                        value={sectorsData.abbreviation}
+                        onChange={(e) => handleSectorsDataChange('abbreviation', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Sector Name</label>
+                      <input
+                        type="text"
+                        placeholder=" Stockholm"
+                        value={sectorsData.name}
+                        onChange={(e) => handleSectorsDataChange('name', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Coordinates</label>
+                      <input
+                        type="text"
+                        placeholder=" N054.07.23.243 E018.07.24.276"
+                        value={sectorsData.coordinates}
+                        onChange={(e) => handleSectorsDataChange('coordinates', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Colour</label>
+                      <input
+                        type="text"
+                        placeholder=" #FFFFFF"
+                        value={sectorsData.colour}
+                        onChange={(e) => handleSectorsDataChange('colour', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                  
+                  {editingSector ? (
+                    <div style={{display: 'flex', gap: '12px', marginTop: '24px'}}>
+                      <button onClick={handleUpdateSector} style={styles.button}>
+                        <span className="material-icons">save</span>
+                        Update Sector
+                      </button>
+                      <button onClick={handleCancelEditSector} style={styles.button}>
+                        <span className="material-icons">cancel</span>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={handleAddSector} style={styles.button}>
+                      <span className="material-icons">add</span>
+                      Add Sector
+                    </button>
+                  )}
+                </div>
+
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                    <h2 style={styles.cardTitle}>Sectors</h2>
+                    <div style={styles.searchContainer}>
+                      <span className="material-icons" style={styles.searchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search by Abbreviation, Name, Coordinates, or Colour..."
+                        value={sectorsSearchTerm}
+                        onChange={(e) => setSectorsSearchTerm(e.target.value)}
+                        style={styles.searchInput}
+                      />
+                    </div>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>Sector Abbreviation</th>
+                          <th style={styles.tableCell}>Sector Name</th>
+                          <th style={styles.tableCell}>Coordinates</th>
+                          <th style={styles.tableCell}>Colour</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredSectors.map((sector) => (
+                          <tr key={sector.id} style={styles.tableRow}>
+                            <td style={styles.tableCell}>{sector.abbreviation}</td>
+                            <td style={styles.tableCell}>{sector.name}</td>
+                            <td style={styles.tableCell}>{sector.coordinates}</td>
+                            <td style={styles.tableCell}>
+                              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <div 
+                                  style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    backgroundColor: sector.colour,
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                                <span>{sector.colour}</span>
+                              </div>
+                            </td>
+                            <td style={styles.tableCell}>
+                              <div style={{display: 'flex', gap: '8px'}}>
+                                <button
+                                  onClick={() => handleEditSector(sector)}
+                                  style={styles.editButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteSector(sector.id)}
+                                  style={styles.deleteButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredSectors.length === 0 && (
+                          <tr>
+                            <td colSpan={5} style={styles.emptyState}>
+                              No sectors found. Add your first sector above!
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentAirportView.type === 'pronunciation' && (
+              <div>
+                <h2 style={styles.cardTitle}>Pronunciation Management for {currentAirportView.airport.name}</h2>
+                
+                {/* Input Section */}
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>Add New Pronunciation</h2>
+                  <div style={styles.grid}>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Fix</label>
+                      <input
+                        type="text"
+                        placeholder="BABAP"
+                        value={pronunciationData.fix}
+                        onChange={(e) => handlePronunciationDataChange('fix', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Pronunciation 1</label>
+                      <input
+                        type="text"
+                        placeholder="BAH-BAP"
+                        value={pronunciationData.pronunciation1}
+                        onChange={(e) => handlePronunciationDataChange('pronunciation1', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Pronunciation 2</label>
+                      <input
+                        type="text"
+                        placeholder="BAY-BAP"
+                        value={pronunciationData.pronunciation2}
+                        onChange={(e) => handlePronunciationDataChange('pronunciation2', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                    
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Pronunciation 3</label>
+                      <input
+                        type="text"
+                        placeholder="BA-BAP"
+                        value={pronunciationData.pronunciation3}
+                        onChange={(e) => handlePronunciationDataChange('pronunciation3', e.target.value)}
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                  
+                  {editingPronunciation ? (
+                    <div style={{display: 'flex', gap: '12px', marginTop: '24px'}}>
+                      <button onClick={handleUpdatePronunciation} style={styles.button}>
+                        <span className="material-icons">save</span>
+                        Update Pronunciation
+                      </button>
+                      <button onClick={handleCancelEditPronunciation} style={styles.button}>
+                        <span className="material-icons">cancel</span>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={handleAddPronunciation} style={styles.button}>
+                      <span className="material-icons">add</span>
+                      Add Pronunciation
+                    </button>
+                  )}
+                </div>
+
+                {/* Table Section */}
+                <div style={styles.card}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '24px'}}>
+                    <h2 style={styles.cardTitle}>Pronunciations</h2>
+                    <div style={styles.searchContainer}>
+                      <span className="material-icons" style={styles.searchIcon}>search</span>
+                      <input
+                        type="text"
+                        placeholder="Search by Fix, Pronunciation 1, 2, or 3..."
+                        value={pronunciationSearchTerm}
+                        onChange={(e) => setPronunciationSearchTerm(e.target.value)}
+                        style={styles.searchInput}
+                      />
+                    </div>
+                  </div>
+                  <div style={styles.tableContainer}>
+                    <table style={styles.table}>
+                      <thead style={styles.tableHeader}>
+                        <tr>
+                          <th style={styles.tableCell}>Fix</th>
+                          <th style={styles.tableCell}>Pronunciation 1</th>
+                          <th style={styles.tableCell}>Pronunciation 2</th>
+                          <th style={styles.tableCell}>Pronunciation 3</th>
+                          <th style={styles.tableCell}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPronunciations.map((pronunciation) => (
+                          <tr key={pronunciation.id} style={styles.tableRow}>
+                            <td style={styles.tableCell}>{pronunciation.fix}</td>
+                            <td style={styles.tableCell}>{pronunciation.pronunciation1}</td>
+                            <td style={styles.tableCell}>{pronunciation.pronunciation2}</td>
+                            <td style={styles.tableCell}>{pronunciation.pronunciation3}</td>
+                            <td style={styles.tableCell}>
+                              <div style={{display: 'flex', gap: '8px'}}>
+                                <button
+                                  onClick={() => handleEditPronunciation(pronunciation)}
+                                  style={styles.editButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>edit</span>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePronunciation(pronunciation.id)}
+                                  style={styles.deleteButton}
+                                >
+                                  <span className="material-icons" style={{fontSize: '16px'}}>delete</span>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredPronunciations.length === 0 && (
+                          <tr>
+                            <td colSpan={5} style={styles.emptyState}>
+                              No pronunciations found. Add your first pronunciation above!
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {currentAirportView.type === 'info' && (
               <div>
                 <h2 style={styles.cardTitle}>INFO for {currentAirportView.airport.name}</h2>
@@ -4835,7 +5538,7 @@ function App() {
                       <label style={styles.label}>CENTERPOINT</label>
                       <input
                         type="text"
-                        placeholder="e.g., 59.6498, 17.9238"
+                        placeholder=" N054.07.23.243 E018.07.24.276"
                         value={infoData.centerpoint}
                         onChange={(e) => handleInfoDataChange('centerpoint', e.target.value)}
                         style={styles.input}
@@ -4846,7 +5549,7 @@ function App() {
                       <label style={styles.label}>MAGNETIC VARIATION</label>
                       <input
                         type="text"
-                        placeholder="e.g., 7E"
+                        placeholder=" 7E"
                         value={infoData.magneticVariation}
                         onChange={(e) => handleInfoDataChange('magneticVariation', e.target.value)}
                         style={styles.input}
@@ -4857,7 +5560,7 @@ function App() {
                       <label style={styles.label}>ELEVATION (M)</label>
                       <input
                         type="text"
-                        placeholder="e.g., 42"
+                        placeholder=" 42"
                         value={infoData.elevation}
                         onChange={(e) => handleInfoDataChange('elevation', e.target.value)}
                         style={styles.input}
@@ -4868,7 +5571,7 @@ function App() {
                       <label style={styles.label}>NAME</label>
                       <input
                         type="text"
-                        placeholder="e.g., Stockholm Arlanda Airport"
+                        placeholder=" Stockholm Arlanda Airport"
                         value={infoData.name}
                         onChange={(e) => handleInfoDataChange('name', e.target.value)}
                         style={styles.input}
@@ -4936,7 +5639,7 @@ function App() {
                       </div>
                       <input
                         type="text"
-                        placeholder="e.g., 12"
+                        placeholder=" 12"
                         value={infoData.defaultZoom}
                         onChange={(e) => handleInfoDataChange('defaultZoom', e.target.value)}
                         style={styles.input}
@@ -4957,7 +5660,7 @@ function App() {
                       <label style={styles.label}>TRANSITION ALTITUDE</label>
                       <input
                         type="text"
-                        placeholder="e.g., 5000"
+                        placeholder=" 5000"
                         value={infoData.transitionAltitude}
                         onChange={(e) => handleInfoDataChange('transitionAltitude', e.target.value)}
                         style={styles.input}
@@ -4985,7 +5688,7 @@ function App() {
                       <label style={styles.label}>RWY 1</label>
                       <input
                         type="text"
-                        placeholder="e.g., 01L"
+                        placeholder=" 01L"
                         value={runwaysData.rwy1}
                         onChange={(e) => handleRunwaysDataChange('rwy1', e.target.value)}
                         style={styles.input}
@@ -4996,7 +5699,7 @@ function App() {
                       <label style={styles.label}>RWY 2</label>
                       <input
                         type="text"
-                        placeholder="e.g., 19R"
+                        placeholder=" 19R"
                         value={runwaysData.rwy2}
                         onChange={(e) => handleRunwaysDataChange('rwy2', e.target.value)}
                         style={styles.input}
@@ -5007,7 +5710,7 @@ function App() {
                       <label style={styles.label}>ELEVATION 1</label>
                       <input
                         type="text"
-                        placeholder="e.g., 45"
+                        placeholder=" 45"
                         value={runwaysData.elevation1}
                         onChange={(e) => handleRunwaysDataChange('elevation1', e.target.value)}
                         style={styles.input}
@@ -5018,7 +5721,7 @@ function App() {
                       <label style={styles.label}>ELEVATION 2</label>
                       <input
                         type="text"
-                        placeholder="e.g., 45"
+                        placeholder=" 45"
                         value={runwaysData.elevation2}
                         onChange={(e) => handleRunwaysDataChange('elevation2', e.target.value)}
                         style={styles.input}
@@ -5029,7 +5732,7 @@ function App() {
                       <label style={styles.label}>TRACK 1</label>
                       <input
                         type="text"
-                        placeholder="e.g., 015"
+                        placeholder=" 015"
                         value={runwaysData.track1}
                         onChange={(e) => handleRunwaysDataChange('track1', e.target.value)}
                         style={styles.input}
@@ -5040,7 +5743,7 @@ function App() {
                       <label style={styles.label}>TRACK 2</label>
                       <input
                         type="text"
-                        placeholder="e.g., 195"
+                        placeholder=" 195"
                         value={runwaysData.track2}
                         onChange={(e) => handleRunwaysDataChange('track2', e.target.value)}
                         style={styles.input}
@@ -5051,7 +5754,7 @@ function App() {
                       <label style={styles.label}>COORDINATE 1</label>
                       <input
                         type="text"
-                        placeholder="e.g., 59.6498, 17.9238"
+                        placeholder=" N054.07.23.243 E018.07.24.276"
                         value={runwaysData.coordinate1}
                         onChange={(e) => handleRunwaysDataChange('coordinate1', e.target.value)}
                         style={styles.input}
@@ -5062,7 +5765,7 @@ function App() {
                       <label style={styles.label}>COORDINATE 2</label>
                       <input
                         type="text"
-                        placeholder="e.g., 59.6498, 17.9238"
+                        placeholder=" N054.07.23.243 E018.07.24.276"
                         value={runwaysData.coordinate2}
                         onChange={(e) => handleRunwaysDataChange('coordinate2', e.target.value)}
                         style={styles.input}
@@ -5359,7 +6062,7 @@ N051.19.52.000;E003.10.47.000;N051.20.29.000;E003.11.02.000;COAST;"
                       <label style={styles.label}>RWY</label>
                       <input
                         type="text"
-                        placeholder="e.g., 01L"
+                        placeholder=" 01L"
                         value={glidepathData.rwy}
                         onChange={(e) => handleGlidepathDataChange('rwy', e.target.value)}
                         style={getInputStyle('rwy')}
@@ -5370,7 +6073,7 @@ N051.19.52.000;E003.10.47.000;N051.20.29.000;E003.11.02.000;COAST;"
                       <label style={styles.label}>ANGLE</label>
                       <input
                         type="text"
-                        placeholder="e.g., 3.0"
+                        placeholder=" 3.0"
                         value={glidepathData.angle}
                         onChange={(e) => handleGlidepathDataChange('angle', e.target.value)}
                         style={getInputStyle('angle')}
@@ -5381,7 +6084,7 @@ N051.19.52.000;E003.10.47.000;N051.20.29.000;E003.11.02.000;COAST;"
                       <label style={styles.label}>LENGTH (M)</label>
                       <input
                         type="text"
-                        placeholder="e.g., 3000"
+                        placeholder=" 3000"
                         value={glidepathData.length}
                         onChange={(e) => handleGlidepathDataChange('length', e.target.value)}
                         style={getInputStyle('length')}
